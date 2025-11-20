@@ -291,16 +291,37 @@ update_github_secret() {
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/${GITHUB_REPO}/actions/secrets/public-key")
         
-        KEY_ID=$(echo "$REPO_KEY_RESPONSE" | sed -n 's/.*"key_id":"\([^"]*\).*/\1/p')
-        PUBLIC_KEY=$(echo "$REPO_KEY_RESPONSE" | sed -n 's/.*"key":"\([^"]*\).*/\1/p')
+        # Extract key_id and key from JSON (handle multiline response)
+        KEY_ID=$(echo "$REPO_KEY_RESPONSE" | tr -d '\n' | sed -n 's/.*"key_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+        PUBLIC_KEY=$(echo "$REPO_KEY_RESPONSE" | tr -d '\n' | sed -n 's/.*"key"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
         
-        if [ -n "$KEY_ID" ] && [ -n "$PUBLIC_KEY" ]; then
-            print_info "Encrypting secret..."
-            
-            # For encryption, we'll use gh CLI or python if available
-            if command -v python3 &> /dev/null; then
-                # Try using Python with PyNaCl
-                ENCRYPTED_VALUE=$(python3 -c "
+        print_info "Key ID: ${KEY_ID:0:20}..."
+        print_info "Public Key: ${PUBLIC_KEY:0:20}..."
+        
+        if [ -z "$KEY_ID" ] || [ -z "$PUBLIC_KEY" ]; then
+            print_error "Could not extract public key from API response"
+            print_error "Response: $REPO_KEY_RESPONSE"
+            exit 1
+        fi
+        
+        print_success "Public key fetched successfully"
+        print_info "Encrypting secret..."
+        
+        # Check for python3
+        if ! command -v python3 &> /dev/null; then
+            print_error "Python3 is required for secret encryption"
+            if [ "$MOBILE_ENV" = "termux" ]; then
+                print_info "Run: pkg install python"
+            elif [ "$MOBILE_ENV" = "ios" ]; then
+                print_info "Run: apk add python3"
+            else
+                print_info "Install Python3 from: https://www.python.org/downloads/"
+            fi
+            exit 1
+        fi
+        
+        # Try using Python with PyNaCl
+        ENCRYPT_OUTPUT=$(python3 -c "
 import sys
 import base64
 try:
@@ -309,54 +330,66 @@ try:
     sealed_box = public.SealedBox(public_key)
     encrypted = sealed_box.encrypt('$ACCESS_TOKEN'.encode('utf-8'))
     print(base64.b64encode(encrypted).decode('utf-8'))
-except ImportError:
+except ImportError as e:
+    print('ERROR:PyNaCl not installed', file=sys.stderr)
     sys.exit(1)
-" 2>/dev/null)
-                
-                if [ -n "$ENCRYPTED_VALUE" ]; then
-                    # Update secret via API
-                    UPDATE_RESPONSE=$(curl -s -X PUT \
-                        -H "Authorization: token $GITHUB_TOKEN" \
-                        -H "Accept: application/vnd.github.v3+json" \
-                        "https://api.github.com/repos/${GITHUB_REPO}/actions/secrets/KITE_ACCESS_TOKEN" \
-                        -d "{\"encrypted_value\":\"$ENCRYPTED_VALUE\",\"key_id\":\"$KEY_ID\"}")
-                    
-                    print_success "GitHub secret updated successfully via API!"
+except Exception as e:
+    print(f'ERROR:{str(e)}', file=sys.stderr)
+    sys.exit(1)
+" 2>&1)
+        
+        ENCRYPT_EXIT_CODE=$?
+        
+        if [ $ENCRYPT_EXIT_CODE -ne 0 ]; then
+            print_error "Encryption process failed with exit code $ENCRYPT_EXIT_CODE"
+            print_error "Output: $ENCRYPT_OUTPUT"
+        fi
+        
+        ENCRYPTED_VALUE="$ENCRYPT_OUTPUT"
+        
+        # Check if encryption succeeded
+        if echo "$ENCRYPTED_VALUE" | grep -q "ERROR:"; then
+            ERROR_MSG=$(echo "$ENCRYPTED_VALUE" | grep "ERROR:" | sed 's/.*ERROR://')
+            print_error "Encryption failed: $ERROR_MSG"
+            
+            if echo "$ERROR_MSG" | grep -q "PyNaCl"; then
+                print_info "Install PyNaCl:"
+                if [ "$MOBILE_ENV" = "termux" ]; then
+                    print_info "  pkg install python-cryptography"
+                    print_info "  pip install PyNaCl"
+                elif [ "$MOBILE_ENV" = "ios" ]; then
+                    print_info "  pip3 install PyNaCl"
                 else
-                    print_warning "PyNaCl not available, falling back to GitHub CLI..."
-                    if echo "$ACCESS_TOKEN" | gh secret set KITE_ACCESS_TOKEN --repo "$GITHUB_REPO"; then
-                        print_success "GitHub secret updated successfully via CLI!"
-                    else
-                        print_error "Failed to update GitHub secret"
-                        exit 1
-                    fi
-                fi
-            else
-                print_warning "Python3 not available, falling back to GitHub CLI..."
-                if echo "$ACCESS_TOKEN" | gh secret set KITE_ACCESS_TOKEN --repo "$GITHUB_REPO"; then
-                    print_success "GitHub secret updated successfully via CLI!"
-                else
-                    print_error "Failed to update GitHub secret"
-                    exit 1
+                    print_info "  pip3 install PyNaCl"
                 fi
             fi
+            exit 1
+        fi
+        
+        if [ -z "$ENCRYPTED_VALUE" ]; then
+            print_error "Failed to encrypt secret"
+            exit 1
+        fi
+        
+        print_success "Secret encrypted successfully"
+        print_info "Updating GitHub secret..."
+        
+        # Update secret via API
+        UPDATE_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X PUT \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${GITHUB_REPO}/actions/secrets/KITE_ACCESS_TOKEN" \
+            -d "{\"encrypted_value\":\"$ENCRYPTED_VALUE\",\"key_id\":\"$KEY_ID\"}")
+        
+        HTTP_CODE=$(echo "$UPDATE_RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
+        
+        if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "204" ]; then
+            print_success "GitHub secret updated successfully!"
         else
-            # Failed to get public key, fall back to GitHub CLI
-            print_warning "Could not fetch repository public key from API"
-            print_info "Falling back to GitHub CLI..."
-            
-            if ! gh auth status &>/dev/null; then
-                print_warning "GitHub CLI not authenticated"
-                print_info "Run: gh auth login"
-                exit 1
-            fi
-            
-            if echo "$ACCESS_TOKEN" | gh secret set KITE_ACCESS_TOKEN --repo "$GITHUB_REPO"; then
-                print_success "GitHub secret updated successfully via CLI!"
-            else
-                print_error "Failed to update GitHub secret"
-                exit 1
-            fi
+            print_error "Failed to update GitHub secret"
+            print_error "HTTP Code: $HTTP_CODE"
+            print_error "Response: $(echo "$UPDATE_RESPONSE" | grep -v "HTTP_CODE:")"
+            exit 1
         fi
     fi
 }
