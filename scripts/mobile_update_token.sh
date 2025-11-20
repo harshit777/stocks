@@ -307,84 +307,74 @@ update_github_secret() {
         print_success "Public key fetched successfully"
         print_info "Encrypting secret..."
         
-        # Check for python3
+        # Check for python3 and py3-pip
         if ! command -v python3 &> /dev/null; then
-            print_error "Python3 is required for secret encryption"
-            if [ "$MOBILE_ENV" = "termux" ]; then
-                print_info "Run: pkg install python"
-            elif [ "$MOBILE_ENV" = "ios" ]; then
-                print_info "Run: apk add python3"
+            print_error "Python3 not found. Installing..."
+            if command -v apk &> /dev/null; then
+                apk add --no-cache python3 py3-pip
             else
-                print_info "Install Python3 from: https://www.python.org/downloads/"
+                print_error "Cannot install python3 automatically"
+                exit 1
             fi
+        fi
+        
+        # Check for PyNaCl and install if missing
+        print_info "Checking for PyNaCl..."
+        if ! python3 -c "import nacl" 2>/dev/null; then
+            print_warning "PyNaCl not installed. Installing..."
+            
+            # Install build dependencies for Alpine
+            if command -v apk &> /dev/null; then
+                print_info "Installing dependencies..."
+                apk add --no-cache py3-pip libsodium-dev python3-dev gcc musl-dev libffi-dev 2>&1 | grep -v "WARNING"
+                
+                print_info "Installing PyNaCl..."
+                python3 -m pip install --no-cache-dir PyNaCl 2>&1 | grep -v "WARNING" | tail -5
+                
+                # Verify installation
+                if ! python3 -c "import nacl" 2>/dev/null; then
+                    print_error "Failed to install PyNaCl"
+                    print_info "Try manually: apk add py3-pip && python3 -m pip install PyNaCl"
+                    exit 1
+                fi
+                
+                print_success "PyNaCl installed successfully"
+            else
+                print_error "Alpine package manager (apk) not found"
+                exit 1
+            fi
+        else
+            print_success "PyNaCl is already installed"
+        fi
+        
+        # Encrypt using Python
+        print_info "Encrypting secret with PyNaCl..."
+        
+        ENCRYPTED_VALUE=$(python3 -c "
+import sys, base64
+from nacl import encoding, public
+try:
+    public_key = public.PublicKey('$PUBLIC_KEY', encoding.Base64Encoder())
+    sealed_box = public.SealedBox(public_key)
+    encrypted = sealed_box.encrypt('$ACCESS_TOKEN'.encode('utf-8'))
+    print(base64.b64encode(encrypted).decode('utf-8'))
+except Exception as e:
+    print(f'ERROR:{e}', file=sys.stderr)
+    sys.exit(1)
+" 2>&1)
+        
+        # Check for errors
+        if echo "$ENCRYPTED_VALUE" | grep -q "ERROR:"; then
+            print_error "Encryption failed: $ENCRYPTED_VALUE"
             exit 1
         fi
         
-        # Try using Python with PyNaCl
-        # Use simpler approach for Linux/mobile environments
-        print_info "Running encryption with Python..."
-        
-        # Export variables for Python to use
-        export GITHUB_PUBLIC_KEY="$PUBLIC_KEY"
-        export KITE_ACCESS_TOKEN="$ACCESS_TOKEN"
-        
-        # Create temp file with simpler approach
-        TEMP_PY_SCRIPT="/tmp/encrypt_secret_$$.py"
-        
-        # Write Python script
-        echo 'import sys' > "$TEMP_PY_SCRIPT"
-        echo 'import base64' >> "$TEMP_PY_SCRIPT"
-        echo 'import os' >> "$TEMP_PY_SCRIPT"
-        echo 'try:' >> "$TEMP_PY_SCRIPT"
-        echo '    from nacl import encoding, public' >> "$TEMP_PY_SCRIPT"
-        echo '    public_key_str = os.environ.get("GITHUB_PUBLIC_KEY")' >> "$TEMP_PY_SCRIPT"
-        echo '    access_token = os.environ.get("KITE_ACCESS_TOKEN")' >> "$TEMP_PY_SCRIPT"
-        echo '    if not public_key_str or not access_token:' >> "$TEMP_PY_SCRIPT"
-        echo '        print("ERROR:Missing variables", file=sys.stderr)' >> "$TEMP_PY_SCRIPT"
-        echo '        sys.exit(1)' >> "$TEMP_PY_SCRIPT"
-        echo '    public_key = public.PublicKey(public_key_str, encoding.Base64Encoder())' >> "$TEMP_PY_SCRIPT"
-        echo '    sealed_box = public.SealedBox(public_key)' >> "$TEMP_PY_SCRIPT"
-        echo '    encrypted = sealed_box.encrypt(access_token.encode("utf-8"))' >> "$TEMP_PY_SCRIPT"
-        echo '    print(base64.b64encode(encrypted).decode("utf-8"))' >> "$TEMP_PY_SCRIPT"
-        echo 'except ImportError:' >> "$TEMP_PY_SCRIPT"
-        echo '    print("ERROR:PyNaCl not installed", file=sys.stderr)' >> "$TEMP_PY_SCRIPT"
-        echo '    sys.exit(1)' >> "$TEMP_PY_SCRIPT"
-        echo 'except Exception as e:' >> "$TEMP_PY_SCRIPT"
-        echo '    print("ERROR:" + str(e), file=sys.stderr)' >> "$TEMP_PY_SCRIPT"
-        echo '    sys.exit(1)' >> "$TEMP_PY_SCRIPT"
-        
-        # Run Python script and capture output to a temp file
-        TEMP_OUTPUT="/tmp/encrypt_output_$$.txt"
-        
-        # Check if python3 exists
-        if ! command -v python3 >/dev/null 2>&1; then
-            print_error "python3 not found"
-            rm -f "$TEMP_PY_SCRIPT"
+        if [ -z "$ENCRYPTED_VALUE" ]; then
+            print_error "Encryption produced no output"
             exit 1
         fi
         
-        # Execute Python directly (foreground)
-        python3 "$TEMP_PY_SCRIPT" > "$TEMP_OUTPUT" 2>&1
-        ENCRYPT_EXIT_CODE=$?
-        
-        print_info "Python completed with exit code: $ENCRYPT_EXIT_CODE"
-        
-        # Read the output
-        ENCRYPT_OUTPUT=$(cat "$TEMP_OUTPUT")
-        
-        # Clean up
-        rm -f "$TEMP_PY_SCRIPT" "$TEMP_OUTPUT"
-        unset GITHUB_PUBLIC_KEY
-        unset KITE_ACCESS_TOKEN
-        
-        print_info "Encryption completed with exit code: $ENCRYPT_EXIT_CODE"
-        
-        if [ $ENCRYPT_EXIT_CODE -ne 0 ]; then
-            print_error "Encryption failed"
-            print_error "Output: $ENCRYPT_OUTPUT"
-        fi
-        
-        ENCRYPTED_VALUE="$ENCRYPT_OUTPUT"
+        print_success "Secret encrypted successfully"
         
         # Check if encryption succeeded
         if echo "$ENCRYPTED_VALUE" | grep -q "ERROR:"; then
