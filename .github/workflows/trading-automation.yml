@@ -111,13 +111,18 @@ jobs:
           echo "ZERODHA_USER_ID=${ZERODHA_USER_ID}" >> .env
           echo "ZERODHA_PASSWORD=${ZERODHA_PASSWORD}" >> .env
           echo "ZERODHA_PIN=${ZERODHA_PIN}" >> .env
+
+      - name: Prepare runtime directories
+        run: |
+          mkdir -p data/logs ai_data
       
-      - name: Download latest AI models
+      - name: Download latest AI models (optional)
         uses: dawidd6/action-download-artifact@v3
         continue-on-error: true
         with:
           workflow: trading-automation.yml
-          name: ai-models-*
+          # Tip: this action searches artifacts when search_artifacts=true; name acts as a filter
+          name: ai-models-
           path: ai_data/
           search_artifacts: true
       
