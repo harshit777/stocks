@@ -14,6 +14,7 @@ import logging
 from datetime import datetime
 import sys
 import os
+import pytz
 
 # Add project root to path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -333,6 +334,7 @@ def main():
     # Market hours (IST)
     market_open = 9 * 60 + 15      # 9:15 AM
     market_close = 15 * 60 + 30    # 3:30 PM
+    ist_tz = pytz.timezone('Asia/Kolkata')
     
     iteration_count = 0
     check_interval = 60  # Check every 60 seconds
@@ -344,7 +346,8 @@ def main():
     
     try:
         while True:
-            current_time = datetime.now()
+            # Get current time in IST
+            current_time = datetime.now(ist_tz)
             current_minutes = current_time.hour * 60 + current_time.minute
             
             # Check if market is open
@@ -431,30 +434,16 @@ def main():
             
             elif is_weekday and current_minutes < market_open:
                 wait_minutes = market_open - current_minutes
-                logger.info(f"\n⏰ Market opens at 9:15 AM. Waiting {wait_minutes} minutes...")
-                logger.info(f"   Current time: {current_time.strftime('%H:%M')}")
-                
-                if current_minutes < market_open - 60:
-                    strategy.reset_daily_data()
-                    # Get current prices for position closing
-                    try:
-                        quotes = trading_wrapper.get_quote(symbols)
-                        current_prices = {
-                            s: quotes.get(f"NSE:{s}", {}).get('last_price', 0)
-                            for s in symbols
-                        }
-                    except Exception as e:
-                        logger.error(f"Failed to get prices for EOD: {e}")
-                        current_prices = {}
-                    paper_trader.reset_daily(current_prices)
-                    logger.info("   Daily data reset completed.")
-                    time.sleep(300)  # Check every 5 minutes
-                    continue
+                logger.info(f"\n⏰ Market has not opened yet. Current time: {current_time.strftime('%H:%M')} IST")
+                logger.info(f"   Market opens at 9:15 AM IST ({wait_minutes} minutes from now)")
+                logger.info("   Exiting. Will be triggered again at market open.")
+                break
             
             elif is_weekday and current_minutes > market_close:
                 logger.info("\n" + "=" * 70)
                 logger.info("📊 PAPER TRADING - END OF DAY SUMMARY")
                 logger.info("=" * 70)
+                logger.info(f"Market closed at {current_time.strftime('%H:%M:%S')} IST")
                 
                 # Final summary
                 summary = paper_trader.get_performance_summary()
@@ -485,16 +474,15 @@ def main():
                 logger.info("💡 Review logs and adjust strategy as needed.")
                 logger.info("=" * 70)
                 
-                # Wait until next trading day
-                logger.info("\n⏸️  Market closed. Waiting for next trading day...")
-                time.sleep(3600)  # Check every hour
-                continue
+                # Exit after market closes (don't wait for next day in GitHub Actions)
+                logger.info("\n⏸️  Market closed. Exiting paper trading.")
+                break
             
             else:
                 # Weekend
                 logger.info(f"\n📅 Weekend - Market closed. Next session: Monday 9:15 AM")
-                time.sleep(3600)  # Check every hour
-                continue
+                logger.info("Exiting paper trading.")
+                break
             
             # Sleep until next check
             time.sleep(check_interval)

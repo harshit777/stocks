@@ -113,11 +113,49 @@ jobs:
           echo "ZERODHA_PIN=${ZERODHA_PIN}" >> .env
           echo "✅ Environment configured with fresh token"
 
+      - name: Check market hours (IST)
+        id: market_check
+        run: |
+          # Get current time in IST (UTC+5:30)
+          IST_TIME=$(TZ='Asia/Kolkata' date +'%H:%M')
+          IST_HOUR=$(TZ='Asia/Kolkata' date +'%H')
+          IST_MINUTE=$(TZ='Asia/Kolkata' date +'%M')
+          IST_DAY=$(TZ='Asia/Kolkata' date +'%u')
+          
+          echo "Current IST time: $IST_TIME"
+          echo "Day of week: $IST_DAY (1=Mon, 7=Sun)"
+          
+          # Market hours: 9:15 AM - 3:30 PM IST (Mon-Fri)
+          # Convert to minutes for easier comparison
+          CURRENT_MINUTES=$((10#$IST_HOUR * 60 + 10#$IST_MINUTE))
+          MARKET_OPEN=$((9 * 60 + 15))   # 9:15 AM = 555 minutes
+          MARKET_CLOSE=$((15 * 60 + 30)) # 3:30 PM = 930 minutes
+          
+          echo "Current minutes: $CURRENT_MINUTES"
+          echo "Market open: $MARKET_OPEN (9:15 AM)"
+          echo "Market close: $MARKET_CLOSE (3:30 PM)"
+          
+          # Check if it's a weekday (1-5) and within market hours
+          if [ "$IST_DAY" -ge 1 ] && [ "$IST_DAY" -le 5 ]; then
+            if [ "$CURRENT_MINUTES" -ge "$MARKET_OPEN" ] && [ "$CURRENT_MINUTES" -le "$MARKET_CLOSE" ]; then
+              echo "✅ Market is OPEN - Proceeding with paper trading"
+              echo "market_open=true" >> $GITHUB_OUTPUT
+            else
+              echo "⏰ Market is CLOSED - Current time $IST_TIME is outside market hours (9:15 AM - 3:30 PM IST)"
+              echo "market_open=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "📅 Weekend - Market is CLOSED"
+            echo "market_open=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Prepare runtime directories
+        if: steps.market_check.outputs.market_open == 'true'
         run: |
           mkdir -p data/logs ai_data
       
       - name: Download latest AI models (optional)
+        if: steps.market_check.outputs.market_open == 'true'
         uses: dawidd6/action-download-artifact@v3
         continue-on-error: true
         with:
@@ -128,9 +166,11 @@ jobs:
           search_artifacts: true
       
       - name: Run paper trading
+        if: steps.market_check.outputs.market_open == 'true'
         run: |
-          # Run for limited time (e.g., 1 hour during market hours)
-          timeout 3600 python3 scripts/paper_trade.py || true
+          # Run paper trading continuously until market closes
+          # The Python script will monitor IST time and stop when market closes
+          python3 scripts/paper_trade.py
       
       - name: Upload trading logs
         uses: actions/upload-artifact@v4
