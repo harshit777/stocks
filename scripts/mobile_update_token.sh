@@ -355,31 +355,19 @@ update_github_secret() {
         
         # Run Python script and capture output to a temp file
         TEMP_OUTPUT="/tmp/encrypt_output_$$.txt"
-        print_info "Python script created at: $TEMP_PY_SCRIPT"
-        print_info "Executing Python encryption..."
         
-        # Run python in background with timeout mechanism
-        python3 "$TEMP_PY_SCRIPT" > "$TEMP_OUTPUT" 2>&1 &
-        PYTHON_PID=$!
-        
-        # Wait for Python to complete (max 30 seconds)
-        WAIT_COUNT=0
-        while kill -0 $PYTHON_PID 2>/dev/null && [ $WAIT_COUNT -lt 30 ]; do
-            sleep 1
-            WAIT_COUNT=$((WAIT_COUNT + 1))
-        done
-        
-        # Check if still running
-        if kill -0 $PYTHON_PID 2>/dev/null; then
-            print_error "Python encryption timed out after 30 seconds"
-            kill -9 $PYTHON_PID 2>/dev/null
-            ENCRYPT_EXIT_CODE=124
-        else
-            wait $PYTHON_PID
-            ENCRYPT_EXIT_CODE=$?
+        # Check if python3 exists
+        if ! command -v python3 >/dev/null 2>&1; then
+            print_error "python3 not found"
+            rm -f "$TEMP_PY_SCRIPT"
+            exit 1
         fi
         
-        print_info "Python process finished"
+        # Execute Python directly (foreground)
+        python3 "$TEMP_PY_SCRIPT" > "$TEMP_OUTPUT" 2>&1
+        ENCRYPT_EXIT_CODE=$?
+        
+        print_info "Python completed with exit code: $ENCRYPT_EXIT_CODE"
         
         # Read the output
         ENCRYPT_OUTPUT=$(cat "$TEMP_OUTPUT")
