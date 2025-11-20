@@ -321,42 +321,55 @@ update_github_secret() {
         fi
         
         # Try using Python with PyNaCl
-        # Create a temporary Python script to avoid shell escaping issues
-        TEMP_PY_SCRIPT="$(mktemp).py"
-        cat > "$TEMP_PY_SCRIPT" << 'EOF'
-import sys
-import base64
-import os
-try:
-    from nacl import encoding, public
-    public_key_str = os.environ.get('GITHUB_PUBLIC_KEY')
-    access_token = os.environ.get('KITE_ACCESS_TOKEN')
-    
-    if not public_key_str or not access_token:
-        print('ERROR:Missing required environment variables', file=sys.stderr)
-        sys.exit(1)
-    
-    public_key = public.PublicKey(public_key_str, encoding.Base64Encoder())
-    sealed_box = public.SealedBox(public_key)
-    encrypted = sealed_box.encrypt(access_token.encode('utf-8'))
-    print(base64.b64encode(encrypted).decode('utf-8'))
-except ImportError as e:
-    print('ERROR:PyNaCl not installed', file=sys.stderr)
-    sys.exit(1)
-except Exception as e:
-    print(f'ERROR:{str(e)}', file=sys.stderr)
-    sys.exit(1)
-EOF
+        # Use simpler approach for Linux/mobile environments
+        print_info "Running encryption with Python..."
         
-        # Run the Python script with environment variables
-        ENCRYPT_OUTPUT=$(GITHUB_PUBLIC_KEY="$PUBLIC_KEY" KITE_ACCESS_TOKEN="$ACCESS_TOKEN" python3 "$TEMP_PY_SCRIPT" 2>&1)
+        # Export variables for Python to use
+        export GITHUB_PUBLIC_KEY="$PUBLIC_KEY"
+        export KITE_ACCESS_TOKEN="$ACCESS_TOKEN"
+        
+        # Create temp file with simpler approach
+        TEMP_PY_SCRIPT="/tmp/encrypt_secret_$$.py"
+        
+        # Write Python script
+        echo 'import sys' > "$TEMP_PY_SCRIPT"
+        echo 'import base64' >> "$TEMP_PY_SCRIPT"
+        echo 'import os' >> "$TEMP_PY_SCRIPT"
+        echo 'try:' >> "$TEMP_PY_SCRIPT"
+        echo '    from nacl import encoding, public' >> "$TEMP_PY_SCRIPT"
+        echo '    public_key_str = os.environ.get("GITHUB_PUBLIC_KEY")' >> "$TEMP_PY_SCRIPT"
+        echo '    access_token = os.environ.get("KITE_ACCESS_TOKEN")' >> "$TEMP_PY_SCRIPT"
+        echo '    if not public_key_str or not access_token:' >> "$TEMP_PY_SCRIPT"
+        echo '        print("ERROR:Missing variables", file=sys.stderr)' >> "$TEMP_PY_SCRIPT"
+        echo '        sys.exit(1)' >> "$TEMP_PY_SCRIPT"
+        echo '    public_key = public.PublicKey(public_key_str, encoding.Base64Encoder())' >> "$TEMP_PY_SCRIPT"
+        echo '    sealed_box = public.SealedBox(public_key)' >> "$TEMP_PY_SCRIPT"
+        echo '    encrypted = sealed_box.encrypt(access_token.encode("utf-8"))' >> "$TEMP_PY_SCRIPT"
+        echo '    print(base64.b64encode(encrypted).decode("utf-8"))' >> "$TEMP_PY_SCRIPT"
+        echo 'except ImportError:' >> "$TEMP_PY_SCRIPT"
+        echo '    print("ERROR:PyNaCl not installed", file=sys.stderr)' >> "$TEMP_PY_SCRIPT"
+        echo '    sys.exit(1)' >> "$TEMP_PY_SCRIPT"
+        echo 'except Exception as e:' >> "$TEMP_PY_SCRIPT"
+        echo '    print("ERROR:" + str(e), file=sys.stderr)' >> "$TEMP_PY_SCRIPT"
+        echo '    sys.exit(1)' >> "$TEMP_PY_SCRIPT"
+        
+        # Run Python script and capture output to a temp file
+        TEMP_OUTPUT="/tmp/encrypt_output_$$.txt"
+        python3 "$TEMP_PY_SCRIPT" > "$TEMP_OUTPUT" 2>&1
         ENCRYPT_EXIT_CODE=$?
         
-        # Clean up temp file
-        rm -f "$TEMP_PY_SCRIPT"
+        # Read the output
+        ENCRYPT_OUTPUT=$(cat "$TEMP_OUTPUT")
+        
+        # Clean up
+        rm -f "$TEMP_PY_SCRIPT" "$TEMP_OUTPUT"
+        unset GITHUB_PUBLIC_KEY
+        unset KITE_ACCESS_TOKEN
+        
+        print_info "Encryption completed with exit code: $ENCRYPT_EXIT_CODE"
         
         if [ $ENCRYPT_EXIT_CODE -ne 0 ]; then
-            print_error "Encryption process failed with exit code $ENCRYPT_EXIT_CODE"
+            print_error "Encryption failed"
             print_error "Output: $ENCRYPT_OUTPUT"
         fi
         
