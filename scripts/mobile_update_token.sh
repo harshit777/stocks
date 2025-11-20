@@ -103,7 +103,7 @@ load_config() {
     
     # Try to load from .env file
     if [ -f ".env" ]; then
-        export $(grep -v '^#' .env | xargs)
+        export $(grep -v '^#' .env | grep -v '^[[:space:]]*$' | xargs)
         print_success "Loaded config from .env"
     fi
     
@@ -321,14 +321,24 @@ update_github_secret() {
         fi
         
         # Try using Python with PyNaCl
-        ENCRYPT_OUTPUT=$(python3 -c "
+        # Create a temporary Python script to avoid shell escaping issues
+        TEMP_PY_SCRIPT=$(mktemp /tmp/encrypt_secret.XXXXXX.py)
+        cat > "$TEMP_PY_SCRIPT" << 'PYTHON_SCRIPT'
 import sys
 import base64
+import os
 try:
     from nacl import encoding, public
-    public_key = public.PublicKey('$PUBLIC_KEY', encoding.Base64Encoder())
+    public_key_str = os.environ.get('GITHUB_PUBLIC_KEY')
+    access_token = os.environ.get('KITE_ACCESS_TOKEN')
+    
+    if not public_key_str or not access_token:
+        print('ERROR:Missing required environment variables', file=sys.stderr)
+        sys.exit(1)
+    
+    public_key = public.PublicKey(public_key_str, encoding.Base64Encoder())
     sealed_box = public.SealedBox(public_key)
-    encrypted = sealed_box.encrypt('$ACCESS_TOKEN'.encode('utf-8'))
+    encrypted = sealed_box.encrypt(access_token.encode('utf-8'))
     print(base64.b64encode(encrypted).decode('utf-8'))
 except ImportError as e:
     print('ERROR:PyNaCl not installed', file=sys.stderr)
@@ -336,9 +346,14 @@ except ImportError as e:
 except Exception as e:
     print(f'ERROR:{str(e)}', file=sys.stderr)
     sys.exit(1)
-" 2>&1)
+PYTHON_SCRIPT
         
+        # Run the Python script with environment variables
+        ENCRYPT_OUTPUT=$(GITHUB_PUBLIC_KEY="$PUBLIC_KEY" KITE_ACCESS_TOKEN="$ACCESS_TOKEN" python3 "$TEMP_PY_SCRIPT" 2>&1)
         ENCRYPT_EXIT_CODE=$?
+        
+        # Clean up temp file
+        rm -f "$TEMP_PY_SCRIPT"
         
         if [ $ENCRYPT_EXIT_CODE -ne 0 ]; then
             print_error "Encryption process failed with exit code $ENCRYPT_EXIT_CODE"
