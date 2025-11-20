@@ -322,8 +322,8 @@ update_github_secret() {
         
         # Try using Python with PyNaCl
         # Create a temporary Python script to avoid shell escaping issues
-        TEMP_PY_SCRIPT=$(mktemp -t encrypt_secret).py
-        cat > "$TEMP_PY_SCRIPT" << 'PYTHON_SCRIPT'
+        TEMP_PY_SCRIPT="$(mktemp).py"
+        cat > "$TEMP_PY_SCRIPT" << 'EOF'
 import sys
 import base64
 import os
@@ -346,7 +346,7 @@ except ImportError as e:
 except Exception as e:
     print(f'ERROR:{str(e)}', file=sys.stderr)
     sys.exit(1)
-PYTHON_SCRIPT
+EOF
         
         # Run the Python script with environment variables
         ENCRYPT_OUTPUT=$(GITHUB_PUBLIC_KEY="$PUBLIC_KEY" KITE_ACCESS_TOKEN="$ACCESS_TOKEN" python3 "$TEMP_PY_SCRIPT" 2>&1)
