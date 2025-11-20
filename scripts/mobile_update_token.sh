@@ -307,34 +307,31 @@ update_github_secret() {
         print_success "Public key fetched successfully"
         print_info "Encrypting secret..."
         
-        # Check for python3 and py3-pip
+        # Check for python3
         if ! command -v python3 &> /dev/null; then
             print_error "Python3 not found. Installing..."
             if command -v apk &> /dev/null; then
-                apk add --no-cache python3 py3-pip
+                apk add --no-cache python3 2>&1 | tail -3
             else
                 print_error "Cannot install python3 automatically"
                 exit 1
             fi
         fi
         
-        # Check for PyNaCl and install if missing
+        # Check for PyNaCl and install from Alpine repo if missing
         print_info "Checking for PyNaCl..."
         if ! python3 -c "import nacl" 2>/dev/null; then
-            print_warning "PyNaCl not installed. Installing..."
+            print_warning "PyNaCl not installed. Installing from Alpine repository..."
             
-            # Install build dependencies for Alpine
+            # Install PyNaCl from Alpine's native package
             if command -v apk &> /dev/null; then
-                print_info "Installing dependencies..."
-                apk add --no-cache py3-pip libsodium-dev python3-dev gcc musl-dev libffi-dev 2>&1 | grep -v "WARNING"
-                
-                print_info "Installing PyNaCl..."
-                python3 -m pip install --no-cache-dir PyNaCl 2>&1 | grep -v "WARNING" | tail -5
+                print_info "Installing py3-pynacl package..."
+                apk add --no-cache py3-pynacl 2>&1 | tail -3
                 
                 # Verify installation
                 if ! python3 -c "import nacl" 2>/dev/null; then
                     print_error "Failed to install PyNaCl"
-                    print_info "Try manually: apk add py3-pip && python3 -m pip install PyNaCl"
+                    print_info "Try manually: apk add py3-pynacl"
                     exit 1
                 fi
                 
