@@ -322,7 +322,7 @@ update_github_secret() {
         
         # Try using Python with PyNaCl
         # Create a temporary Python script to avoid shell escaping issues
-        TEMP_PY_SCRIPT=$(mktemp /tmp/encrypt_secret.XXXXXX.py)
+        TEMP_PY_SCRIPT=$(mktemp -t encrypt_secret).py
         cat > "$TEMP_PY_SCRIPT" << 'PYTHON_SCRIPT'
 import sys
 import base64
