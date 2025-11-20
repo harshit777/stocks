@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>AI Model Training - Portfolio Dashboard</title>
+        <link rel="stylesheet" href="/static/css/style.css" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            .progress-bar {
+                width: 100%;
+                height: 8px;
+                background: var(--background-secondary, #1a1d29);
+                border-radius: 4px;
+                overflow: hidden;
+                margin: 1rem 0;
+            }
+            .progress-fill {
+                height: 100%;
+                background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+                transition: width 0.3s ease;
+            }
+            .status-badge {
+                display: inline-block;
+                padding: 0.25rem 0.75rem;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: 600;
+            }
+            .status-idle {
+                background: rgba(156, 163, 175, 0.2);
+                color: #9ca3af;
+            }
+            .status-running {
+                background: rgba(59, 130, 246, 0.2);
+                color: #3b82f6;
+                animation: pulse 2s infinite;
+            }
+            .status-success {
+                background: rgba(16, 185, 129, 0.2);
+                color: #10b981;
+            }
+            .status-error {
+                background: rgba(239, 68, 68, 0.2);
+                color: #ef4444;
+            }
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.7; }
+            }
+            .symbol-chip {
+                display: inline-block;
+                padding: 0.25rem 0.75rem;
+                margin: 0.25rem;
+                background: rgba(102, 126, 234, 0.1);
+                border: 1px solid rgba(102, 126, 234, 0.3);
+                border-radius: 16px;
+                font-size: 0.8rem;
+                color: var(--text-primary);
+            }
+            .log-container {
+                background: #0d1117;
+                border-radius: 8px;
+                padding: 1rem;
+                max-height: 300px;
+                overflow-y: auto;
+                font-family: 'Courier New', monospace;
+                font-size: 0.85rem;
+                color: #c9d1d9;
+            }
+            .log-entry {
+                padding: 0.25rem 0;
+                border-bottom: 1px solid rgba(255,255,255,0.05);
+            }
+            .log-entry:last-child {
+                border-bottom: none;
+            }
+            .stat-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
+                margin: 1.5rem 0;
+            }
+            .stat-item {
+                padding: 1rem;
+                background: var(--card-background, #1a1d29);
+                border-radius: 8px;
+                text-align: center;
+            }
+            .stat-value {
+                font-size: 2rem;
+                font-weight: 700;
+                color: #667eea;
+                margin: 0.5rem 0;
+            }
+            .stat-label {
+                font-size: 0.875rem;
+                color: var(--text-secondary);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            .btn-group {
+                display: flex;
+                gap: 1rem;
+                margin-top: 1.5rem;
+            }
+            .btn {
+                padding: 0.75rem 1.5rem;
+                border-radius: 8px;
+                border: none;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            .btn-primary {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+            }
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            }
+            .btn-secondary {
+                background: rgba(156, 163, 175, 0.2);
+                color: var(--text-primary);
+            }
+            .btn-secondary:hover {
+                background: rgba(156, 163, 175, 0.3);
+            }
+            .btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            .form-group {
+                margin: 1.5rem 0;
+            }
+            .form-label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-weight: 600;
+                color: var(--text-primary);
+            }
+            .form-input {
+                width: 100%;
+                padding: 0.75rem;
+                background: var(--background-secondary, #1a1d29);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 8px;
+                color: var(--text-primary);
+                font-family: inherit;
+            }
+            .training-history-item {
+                padding: 1rem;
+                background: var(--card-background, #1a1d29);
+                border-radius: 8px;
+                margin-bottom: 0.5rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .stock-performance-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 1rem;
+            }
+            .stock-performance-table th {
+                background: rgba(102, 126, 234, 0.1);
+                padding: 0.75rem;
+                text-align: left;
+                font-weight: 600;
+                color: var(--text-primary);
+                border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+            }
+            .stock-performance-table td {
+                padding: 0.75rem;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+                color: var(--text-secondary);
+            }
+            .stock-performance-table tr:hover {
+                background: rgba(102, 126, 234, 0.05);
+            }
+            .pnl-positive {
+                color: #10b981;
+                font-weight: 600;
+            }
+            .pnl-negative {
+                color: #ef4444;
+                font-weight: 600;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="logo">
+                    <div class="logo-icon">₹</div>
+                    <span class="logo-text">Portfolio</span>
+                </div>
+
+                <nav class="nav">
+                    <a href="/" class="nav-item">
+                        <svg
+                            class="nav-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                        >
+                            <path
+                                d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                            ></path>
+                        </svg>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="/holdings" class="nav-item">
+                        <svg
+                            class="nav-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                        >
+                            <path
+                                d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                            ></path>
+                            <circle cx="8.5" cy="7" r="4"></circle>
+                        </svg>
+                        <span>Holdings</span>
+                    </a>
+                    <a href="/positions" class="nav-item">
+                        <svg
+                            class="nav-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                        >
+                            <path
+                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                            ></path>
+                        </svg>
+                        <span>Positions</span>
+                    </a>
+                    <a href="/funds" class="nav-item">
+                        <svg
+                            class="nav-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                        >
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path
+                                d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                            ></path>
+                        </svg>
+                        <span>Funds</span>
+                    </a>
+                    <a href="/ai-training" class="nav-item active">
+                        <svg
+                            class="nav-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                        >
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                        </svg>
+                        <span>AI Training</span>
+                    </a>
+                </nav>
+
+                <div class="nav-footer">
+                    <a href="#" class="nav-item">
+                        <svg
+                            class="nav-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                        >
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                            ></path>
+                        </svg>
+                    </a>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Header -->
+                <header class="header">
+                    <div class="header-left">
+                        <h1 class="page-title">AI Model Training</h1>
+                        <div class="date-range">
+                            <span id="statusDisplay">Ready to train</span>
+                        </div>
+                    </div>
+                    <div class="header-right">
+                        <div class="user-avatar">
+                            <img
+                                src="https://ui-avatars.com/api/?name=AI&background=764ba2&color=fff"
+                                alt="AI"
+                            />
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Training Control Panel -->
+                <div class="chart-card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3 class="card-title">Training Control Panel</h3>
+                        <span class="status-badge" id="trainingStatus">Idle</span>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <div class="form-group">
+                            <label class="form-label">Training Symbols</label>
+                            <input
+                                type="text"
+                                class="form-input"
+                                id="symbolsInput"
+                                placeholder="Enter symbols (e.g., RELIANCE, TCS, INFY)"
+                                value="RELIANCE, TCS, INFY, HDFCBANK, ICICIBANK, SBIN, BHARTIARTL, ITC, WIPRO, LT, AXISBANK, KOTAKBANK, HINDUNILVR, MARUTI, BAJFINANCE, ASIANPAINT, TITAN, NESTLEIND, ULTRACEMCO, SUNPHARMA, TATASTEEL, POWERGRID, NTPC, ONGC, COALINDIA, TECHM, HCLTECH, DIVISLAB, DRREDDY, CIPLA, BAJAJFINSV, M&M, TATAMOTORS, ADANIPORTS, JSWSTEEL, HINDALCO, GRASIM, BRITANNIA, SHREECEM, EICHERMOT, HEROMOTOCO, BPCL, IOC"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Lookback Days</label>
+                            <input
+                                type="number"
+                                class="form-input"
+                                id="lookbackInput"
+                                placeholder="Number of days"
+                                value="60"
+                                min="7"
+                                max="365"
+                            />
+                        </div>
+                        <div class="progress-bar" id="progressBar" style="display: none;">
+                            <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                        </div>
+                        <div id="progressText" style="display: none; color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.5rem;"></div>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" id="startTrainingBtn" onclick="startTraining()">
+                                <svg style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 0.5rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                                Start Training
+                            </button>
+                            <button class="btn btn-secondary" id="stopTrainingBtn" onclick="stopTraining()" disabled>
+                                <svg style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 0.5rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <rect x="6" y="6" width="12" height="12"></rect>
+                                </svg>
+                                Stop Training
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training Statistics -->
+                <div class="chart-card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3 class="card-title">Training Statistics</h3>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <div class="stat-grid">
+                            <div class="stat-item">
+                                <div class="stat-label">Total Candles</div>
+                                <div class="stat-value" id="statCandles">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Patterns Detected</div>
+                                <div class="stat-value" id="statPatterns">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Predictions Made</div>
+                                <div class="stat-value" id="statPredictions">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Accuracy</div>
+                                <div class="stat-value" id="statAccuracy">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Paper Trading Summary -->
+                <div class="chart-card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3 class="card-title">💰 Paper Trading Performance</h3>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <div class="stat-grid" id="paperTradingSummary">
+                            <div class="stat-item">
+                                <div class="stat-label">Virtual Capital</div>
+                                <div class="stat-value" id="virtualCapital" style="font-size: 1.5rem;">₹0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Available Cash</div>
+                                <div class="stat-value" id="availableCash" style="font-size: 1.5rem;">₹0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Total Return</div>
+                                <div class="stat-value" id="totalReturn" style="font-size: 1.5rem;">₹0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Win Rate</div>
+                                <div class="stat-value" id="winRate" style="font-size: 1.5rem;">0%</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Additional Paper Trading Metrics -->
+                        <div style="margin-top: 1.5rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;" id="paperMetricsGrid">
+                            <div style="padding: 0.75rem; background: rgba(102, 126, 234, 0.05); border-radius: 6px; text-align: center;">
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Winning Trades</div>
+                                <div style="font-size: 1.25rem; font-weight: 600; color: #10b981; margin-top: 0.25rem;" id="winningTrades">0</div>
+                            </div>
+                            <div style="padding: 0.75rem; background: rgba(102, 126, 234, 0.05); border-radius: 6px; text-align: center;">
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Losing Trades</div>
+                                <div style="font-size: 1.25rem; font-weight: 600; color: #ef4444; margin-top: 0.25rem;" id="losingTrades">0</div>
+                            </div>
+                            <div style="padding: 0.75rem; background: rgba(102, 126, 234, 0.05); border-radius: 6px; text-align: center;">
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Active Positions</div>
+                                <div style="font-size: 1.25rem; font-weight: 600; color: #667eea; margin-top: 0.25rem;" id="activePositions">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Per-Stock Performance -->
+                <div class="chart-card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3 class="card-title">📊 Stock Performance During Training</h3>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <!-- Summary Stats -->
+                        <div class="stat-grid" id="stockSummaryStats" style="display: none; margin-bottom: 1.5rem;">
+                            <div class="stat-item">
+                                <div class="stat-label">Total Investment</div>
+                                <div class="stat-value" id="totalInvestment" style="font-size: 1.5rem;">₹0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Total P&L</div>
+                                <div class="stat-value" id="totalPnl" style="font-size: 1.5rem;">₹0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Overall Return</div>
+                                <div class="stat-value" id="overallReturn" style="font-size: 1.5rem;">0%</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Total Trades</div>
+                                <div class="stat-value" id="totalTrades" style="font-size: 1.5rem;">0</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Stock Performance Table -->
+                        <div id="stockPerformanceTable">
+                            <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No stock performance data available yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training Logs -->
+                <div class="chart-card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3 class="card-title">Training Logs</h3>
+                        <button class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="clearLogs()">Clear Logs</button>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <div class="log-container" id="trainingLogs">
+                            <div class="log-entry">Waiting for training to start...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daily Trading Statistics -->
+                <div class="chart-card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3 class="card-title">📅 Daily Trading Statistics</h3>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <div id="dailyStatsTable">
+                            <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No daily trading data available yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training History -->
+                <div class="chart-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Training History</h3>
+                    </div>
+                    <div style="padding: 1.5rem;" id="trainingHistory">
+                        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No training history available</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <script>
+            let trainingInterval = null;
+            let trainingStartTime = null;
+
+            function addLog(message, type = 'info') {
+                const logsContainer = document.getElementById('trainingLogs');
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                
+                let prefix = '●';
+                let color = '#c9d1d9';
+                if (type === 'success') {
+                    prefix = '✓';
+                    color = '#10b981';
+                } else if (type === 'error') {
+                    prefix = '✗';
+                    color = '#ef4444';
+                } else if (type === 'warning') {
+                    prefix = '⚠';
+                    color = '#f59e0b';
+                }
+                
+                logEntry.innerHTML = `<span style="color: #6b7280;">[${timestamp}]</span> <span style="color: ${color};">${prefix}</span> ${message}`;
+                logsContainer.appendChild(logEntry);
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+            }
+
+            function clearLogs() {
+                const logsContainer = document.getElementById('trainingLogs');
+                logsContainer.innerHTML = '<div class="log-entry">Logs cleared</div>';
+            }
+
+            function updateStatus(status, message) {
+                const statusBadge = document.getElementById('trainingStatus');
+                const statusDisplay = document.getElementById('statusDisplay');
+                
+                statusBadge.className = 'status-badge status-' + status;
+                statusBadge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                statusDisplay.textContent = message;
+            }
+
+            function updateStats(stats) {
+                document.getElementById('statCandles').textContent = stats.total_candles || 0;
+                document.getElementById('statPatterns').textContent = stats.patterns_detected || 0;
+                document.getElementById('statPredictions').textContent = stats.predictions_made || 0;
+                
+                if (stats.predictions_made > 0) {
+                    const accuracy = ((stats.successful_predictions || 0) / stats.predictions_made * 100).toFixed(2);
+                    document.getElementById('statAccuracy').textContent = accuracy + '%';
+                } else {
+                    document.getElementById('statAccuracy').textContent = '0%';
+                }
+                
+                // Update paper trading summary if available
+                if (stats.paper_trading) {
+                    updatePaperTradingSummary(stats.paper_trading);
+                }
+                
+                // Update stock performance table
+                updateStockPerformance(stats.stock_performance || {});
+            }
+            
+            function updatePaperTradingSummary(paperData) {
+                if (!paperData) return;
+                
+                // Update main metrics
+                const currentCapital = paperData.current_capital || 0;
+                const initialCapital = paperData.initial_capital || 100000;
+                const availableCapital = paperData.available_capital || 0;
+                const totalReturn = currentCapital - initialCapital;
+                const totalReturnPct = initialCapital > 0 ? (totalReturn / initialCapital * 100) : 0;
+                
+                document.getElementById('virtualCapital').textContent = `₹${currentCapital.toLocaleString()}`;
+                document.getElementById('availableCash').textContent = `₹${availableCapital.toLocaleString()}`;
+                document.getElementById('totalReturn').textContent = `${totalReturn >= 0 ? '+' : ''}₹${totalReturn.toLocaleString()}`;
+                document.getElementById('totalReturn').style.color = totalReturn >= 0 ? '#10b981' : '#ef4444';
+                
+                // Win rate
+                const totalTrades = paperData.total_trades || 0;
+                const winningTrades = paperData.winning_trades || 0;
+                const losingTrades = paperData.losing_trades || 0;
+                const winRate = totalTrades > 0 ? (winningTrades / totalTrades * 100) : 0;
+                
+                document.getElementById('winRate').textContent = `${winRate.toFixed(1)}%`;
+                document.getElementById('winningTrades').textContent = winningTrades;
+                document.getElementById('losingTrades').textContent = losingTrades;
+                
+                // Active positions
+                const activePositions = paperData.active_positions || 0;
+                document.getElementById('activePositions').textContent = activePositions;
+            }
+            
+            function updateDailyStats(dailyStats) {
+                const container = document.getElementById('dailyStatsTable');
+                
+                if (!dailyStats || dailyStats.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No daily trading data available yet</p>';
+                    return;
+                }
+                
+                let tableHTML = '<table class="stock-performance-table">';
+                tableHTML += '<thead><tr>';
+                tableHTML += '<th>Date</th>';
+                tableHTML += '<th>Starting Capital (₹)</th>';
+                tableHTML += '<th>Ending Capital (₹)</th>';
+                tableHTML += '<th>P&L (₹)</th>';
+                tableHTML += '<th>P&L %</th>';
+                tableHTML += '<th>Trades</th>';
+                tableHTML += '<th>Wins</th>';
+                tableHTML += '<th>Losses</th>';
+                tableHTML += '<th>Win Rate</th>';
+                tableHTML += '</tr></thead>';
+                tableHTML += '<tbody>';
+                
+                // Show most recent days first
+                const sortedStats = [...dailyStats].reverse();
+                
+                for (const stat of sortedStats) {
+                    const pnl = stat.pnl || 0;
+                    const pnlPct = stat.starting_capital > 0 ? (pnl / stat.starting_capital * 100) : 0;
+                    const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+                    const pnlSign = pnl >= 0 ? '+' : '';
+                    
+                    tableHTML += '<tr>';
+                    tableHTML += `<td style="font-weight: 600;">${stat.date}</td>`;
+                    tableHTML += `<td>₹${stat.starting_capital.toLocaleString()}</td>`;
+                    tableHTML += `<td>₹${stat.ending_capital.toLocaleString()}</td>`;
+                    tableHTML += `<td class="${pnlClass}">${pnlSign}₹${pnl.toLocaleString()}</td>`;
+                    tableHTML += `<td class="${pnlClass}">${pnlSign}${pnlPct.toFixed(2)}%</td>`;
+                    tableHTML += `<td>${stat.trades}</td>`;
+                    tableHTML += `<td style="color: #10b981;">${stat.wins}</td>`;
+                    tableHTML += `<td style="color: #ef4444;">${stat.losses}</td>`;
+                    tableHTML += `<td>${stat.win_rate.toFixed(1)}%</td>`;
+                    tableHTML += '</tr>';
+                }
+                
+                tableHTML += '</tbody></table>';
+                container.innerHTML = tableHTML;
+            }
+            
+            function updateStockPerformance(stockPerformance) {
+                const container = document.getElementById('stockPerformanceTable');
+                const summaryStats = document.getElementById('stockSummaryStats');
+                
+                if (!stockPerformance || Object.keys(stockPerformance).length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No stock performance data available yet</p>';
+                    summaryStats.style.display = 'none';
+                    return;
+                }
+                
+                // Calculate totals
+                let totalInvestment = 0;
+                let totalPnl = 0;
+                let totalTrades = 0;
+                
+                for (const [symbol, data] of Object.entries(stockPerformance)) {
+                    totalInvestment += data.investment;
+                    totalPnl += data.pnl;
+                    totalTrades += data.trades;
+                }
+                
+                const overallReturn = totalInvestment > 0 ? (totalPnl / totalInvestment * 100) : 0;
+                
+                // Update summary stats
+                summaryStats.style.display = 'grid';
+                document.getElementById('totalInvestment').textContent = `₹${totalInvestment.toLocaleString()}`;
+                document.getElementById('totalPnl').textContent = `${totalPnl >= 0 ? '+' : ''}₹${totalPnl.toLocaleString()}`;
+                document.getElementById('totalPnl').style.color = totalPnl >= 0 ? '#10b981' : '#ef4444';
+                document.getElementById('overallReturn').textContent = `${overallReturn >= 0 ? '+' : ''}${overallReturn.toFixed(2)}%`;
+                document.getElementById('overallReturn').style.color = overallReturn >= 0 ? '#10b981' : '#ef4444';
+                document.getElementById('totalTrades').textContent = totalTrades;
+                
+                let tableHTML = '<table class="stock-performance-table">';
+                tableHTML += '<thead><tr>';
+                tableHTML += '<th>Symbol</th>';
+                tableHTML += '<th>Investment (₹)</th>';
+                tableHTML += '<th>P&L (₹)</th>';
+                tableHTML += '<th>P&L %</th>';
+                tableHTML += '<th>Trades</th>';
+                tableHTML += '</tr></thead>';
+                tableHTML += '<tbody>';
+                
+                // Sort by PNL descending
+                const sortedStocks = Object.entries(stockPerformance).sort((a, b) => b[1].pnl - a[1].pnl);
+                
+                for (const [symbol, data] of sortedStocks) {
+                    const pnlClass = data.pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+                    const pnlSign = data.pnl >= 0 ? '+' : '';
+                    
+                    tableHTML += '<tr>';
+                    tableHTML += `<td style="font-weight: 600;">${symbol}</td>`;
+                    tableHTML += `<td>₹${data.investment.toLocaleString()}</td>`;
+                    tableHTML += `<td class="${pnlClass}">${pnlSign}₹${data.pnl.toLocaleString()}</td>`;
+                    tableHTML += `<td class="${pnlClass}">${pnlSign}${data.pnl_percent}%</td>`;
+                    tableHTML += `<td>${data.trades}</td>`;
+                    tableHTML += '</tr>';
+                }
+                
+                tableHTML += '</tbody></table>';
+                container.innerHTML = tableHTML;
+            }
+
+            async function startTraining() {
+                const symbols = document.getElementById('symbolsInput').value.split(',').map(s => s.trim()).filter(s => s);
+                const lookback = parseInt(document.getElementById('lookbackInput').value);
+
+                if (symbols.length === 0) {
+                    addLog('Please enter at least one symbol', 'error');
+                    return;
+                }
+
+                if (isNaN(lookback) || lookback < 7 || lookback > 365) {
+                    addLog('Lookback days must be between 7 and 365', 'error');
+                    return;
+                }
+
+                // Update UI
+                document.getElementById('startTrainingBtn').disabled = true;
+                document.getElementById('stopTrainingBtn').disabled = false;
+                document.getElementById('progressBar').style.display = 'block';
+                document.getElementById('progressText').style.display = 'block';
+                updateStatus('running', 'Training in progress...');
+                
+                addLog('Starting AI model training...', 'info');
+                addLog(`Symbols: ${symbols.join(', ')}`, 'info');
+                addLog(`Lookback: ${lookback} days`, 'info');
+                
+                trainingStartTime = Date.now();
+
+                try {
+                    const response = await fetch('/api/ai-training/start', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            symbols: symbols,
+                            lookback_days: lookback
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        addLog('Training job started successfully', 'success');
+                        
+                        // Start polling for status
+                        trainingInterval = setInterval(pollTrainingStatus, 2000);
+                    } else {
+                        addLog(`Failed to start training: ${data.message}`, 'error');
+                        resetTrainingUI();
+                    }
+                } catch (error) {
+                    addLog(`Error: ${error.message}`, 'error');
+                    resetTrainingUI();
+                }
+            }
+
+            async function pollTrainingStatus() {
+                try {
+                    const response = await fetch('/api/ai-training/status');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const status = data.status;
+                        
+                        // Update progress
+                        if (status.progress !== undefined) {
+                            document.getElementById('progressFill').style.width = status.progress + '%';
+                            document.getElementById('progressText').textContent = status.current_step || 'Training...';
+                        }
+
+                // Update stats
+                if (status.stats) {
+                    updateStats(status.stats);
+                }
+                
+                // Update daily stats from paper trading if available
+                if (status.stats && status.stats.daily_stats) {
+                    updateDailyStats(status.stats.daily_stats);
+                }
+
+                        // Check if training is complete
+                        if (status.state === 'completed') {
+                            addLog('Training completed successfully!', 'success');
+                            addLog(`Total time: ${Math.round((Date.now() - trainingStartTime) / 1000)}s`, 'info');
+                            stopTraining();
+                            updateStatus('success', 'Training completed');
+                            loadTrainingHistory();
+                        } else if (status.state === 'error') {
+                            addLog(`Training failed: ${status.error}`, 'error');
+                            stopTraining();
+                            updateStatus('error', 'Training failed');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error polling status:', error);
+                }
+            }
+
+            function stopTraining() {
+                if (trainingInterval) {
+                    clearInterval(trainingInterval);
+                    trainingInterval = null;
+                }
+                
+                resetTrainingUI();
+            }
+
+            function resetTrainingUI() {
+                document.getElementById('startTrainingBtn').disabled = false;
+                document.getElementById('stopTrainingBtn').disabled = true;
+                document.getElementById('progressBar').style.display = 'none';
+                document.getElementById('progressText').style.display = 'none';
+                updateStatus('idle', 'Ready to train');
+            }
+
+            async function loadTrainingHistory() {
+                try {
+                    const response = await fetch('/api/ai-training/history');
+                    const data = await response.json();
+
+                    if (data.success && data.history && data.history.length > 0) {
+                        const historyContainer = document.getElementById('trainingHistory');
+                        historyContainer.innerHTML = '';
+
+                        data.history.forEach(item => {
+                            const div = document.createElement('div');
+                            div.className = 'training-history-item';
+                            
+                            const date = new Date(item.timestamp).toLocaleString();
+                            const accuracy = item.stats.predictions_made > 0 
+                                ? ((item.stats.successful_predictions / item.stats.predictions_made) * 100).toFixed(2) 
+                                : 0;
+                            
+                            // Calculate total PNL and trades if available
+                            let totalPnl = 0;
+                            let totalTrades = 0;
+                            if (item.stats.stock_performance) {
+                                for (const [symbol, data] of Object.entries(item.stats.stock_performance)) {
+                                    totalPnl += data.pnl;
+                                    totalTrades += data.trades;
+                                }
+                            }
+
+                            div.innerHTML = `
+                                <div>
+                                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${item.symbols.join(', ')}</div>
+                                    <div style="font-size: 0.875rem; color: var(--text-secondary);">${date} • ${item.lookback_days} days • Accuracy: ${accuracy}%</div>
+                                    ${totalTrades > 0 ? `<div style="font-size: 0.875rem; margin-top: 0.25rem;"><span style="color: ${totalPnl >= 0 ? '#10b981' : '#ef4444'}; font-weight: 600;">${totalPnl >= 0 ? '+' : ''}₹${totalPnl.toFixed(2)}</span> • ${totalTrades} trades</div>` : ''}
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 0.875rem; color: var(--text-secondary);">Candles: ${item.stats.total_candles}</div>
+                                    <div style="font-size: 0.875rem; color: var(--text-secondary);">Patterns: ${item.stats.patterns_detected}</div>
+                                </div>
+                            `;
+                            
+                            historyContainer.appendChild(div);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading history:', error);
+                }
+            }
+
+            // Load current holdings and populate symbols
+            async function loadHoldingsToSymbols() {
+                try {
+                    const response = await fetch('/api/portfolio');
+                    const result = await response.json();
+                    
+                    if (result.success && result.data && result.data.holdings) {
+                        const holdingsSymbols = result.data.holdings.map(h => h.symbol);
+                        const symbolsInput = document.getElementById('symbolsInput');
+                        const currentSymbols = symbolsInput.value.split(',').map(s => s.trim()).filter(s => s);
+                        
+                        // Combine holdings with default symbols (remove duplicates)
+                        const allSymbols = [...new Set([...holdingsSymbols, ...currentSymbols])];
+                        symbolsInput.value = allSymbols.join(', ');
+                        
+                        // Show a tooltip or indicator for holdings
+                        if (holdingsSymbols.length > 0) {
+                            const label = document.querySelector('label[for="symbolsInput"]') || 
+                                         document.querySelector('.form-label');
+                            if (label && label.textContent === 'Training Symbols') {
+                                label.innerHTML = 'Training Symbols <span style="color: #10b981; font-size: 0.75rem;">(💼 includes your holdings)</span>';
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.log('Could not load holdings:', error);
+                }
+            }
+            
+            async function loadDailyStats() {
+                try {
+                    const response = await fetch('/api/paper-trading/status');
+                    const data = await response.json();
+                    
+                    if (data.success && data.data && data.data.daily_stats) {
+                        updateDailyStats(data.data.daily_stats);
+                    }
+                } catch (error) {
+                    console.log('Could not load daily stats:', error);
+                }
+            }
+            
+            // Load initial data
+            document.addEventListener('DOMContentLoaded', () => {
+                loadHoldingsToSymbols();
+                loadTrainingHistory();
+                loadDailyStats();
+            });
+        </script>
+    </body>
+</html>

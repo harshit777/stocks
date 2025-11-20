@@ -1,0 +1,45 @@
+{
+  "model_params": {
+    "WIPRO": {
+      "success_rate": 0.6355000000000001,
+      "trades": 3
+    },
+    "COALINDIA": {
+      "success_rate": 0.6355000000000001,
+      "trades": 3
+    },
+    "HDFCBANK": {
+      "success_rate": 0.55,
+      "trades": 1
+    },
+    "SBIN": {
+      "success_rate": 0.6355000000000001,
+      "trades": 3
+    },
+    "BHARTIARTL": {
+      "success_rate": 0.5950000000000001,
+      "trades": 2
+    },
+    "LT": {
+      "success_rate": 0.55,
+      "trades": 1
+    },
+    "NTPC": {
+      "success_rate": 0.5950000000000001,
+      "trades": 2
+    },
+    "RELIANCE": {
+      "success_rate": 0.55,
+      "trades": 1
+    },
+    "DIVISLAB": {
+      "success_rate": 0.55,
+      "trades": 1
+    }
+  },
+  "accuracy_stats": {
+    "correct_predictions": 0,
+    "total_predictions": 0,
+    "accuracy_rate": 0.0
+  }
+}

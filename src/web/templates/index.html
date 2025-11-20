@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Portfolio Analytics Dashboard</title>
+        <link rel="stylesheet" href="/static/css/style.css" />
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+    <body>
+        <div class="container">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="logo">
+                    <div class="logo-icon">₹</div>
+                    <span class="logo-text">Portfolio</span>
+                </div>
+
+                <nav class="nav">
+                    <a href="#" class="nav-item active">
+                        <svg
+                            class="nav-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                        >
+                            <path
+                                d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                            ></path>
+                        </svg>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="/holdings" class="nav-item">
+                        <svg
+                            class="nav-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                        >
+                            <path
+                                d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                            ></path>
+                            <circle cx="8.5" cy="7" r="4"></circle>
+                        </svg>
+                        <span>Holdings</span>
+                    </a>
+                    <a href="/positions" class="nav-item">
+                        <svg
+                            class="nav-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                        >
+                            <path
+                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                            ></path>
+                        </svg>
+                        <span>Positions</span>
+                    </a>
+                    <a href="/funds" class="nav-item">
+                        <svg
+                            class="nav-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                        >
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path
+                                d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                            ></path>
+                        </svg>
+                        <span>Funds</span>
+                    </a>
+                    <a href="/ai-training" class="nav-item">
+                        <svg
+                            class="nav-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                        >
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                        </svg>
+                        <span>AI Training</span>
+                    </a>
+                </nav>
+
+                <div class="nav-footer">
+                    <a href="#" class="nav-item">
+                        <svg
+                            class="nav-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                        >
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                            ></path>
+                        </svg>
+                    </a>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Header -->
+                <header class="header">
+                    <div class="header-left">
+                        <h1 class="page-title">Portfolio Analytics</h1>
+                        <div class="date-range">
+                            <span id="dateDisplay">Loading...</span>
+                        </div>
+                    </div>
+                    <div class="header-right">
+                        <button class="btn-refresh" onclick="refreshData()">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                            >
+                                <path d="M1 4v6h6"></path>
+                                <path
+                                    d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"
+                                ></path>
+                            </svg>
+                        </button>
+                        <div class="user-avatar">
+                            <img
+                                src="https://ui-avatars.com/api/?name=Portfolio&background=6366f1&color=fff"
+                                alt="User"
+                            />
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Total Portfolio Value</div>
+                        <div class="metric-value" id="totalValue">₹0</div>
+                        <div class="metric-change positive" id="totalChange">
+                            <svg
+                                class="trend-icon"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                            >
+                                <line x1="12" y1="19" x2="12" y2="5"></line>
+                                <polyline points="5 12 12 5 19 12"></polyline>
+                            </svg>
+                            <span>0%</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-label">Total P&L</div>
+                        <div class="metric-value" id="totalPnl">₹0</div>
+                        <div class="metric-badge gain" id="pnlBadge">0%</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-label">Gainers</div>
+                        <div class="metric-value" id="gainersCount">0</div>
+                        <div class="metric-subtext" id="gainersText">
+                            stocks
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-label">Losers</div>
+                        <div class="metric-value" id="losersCount">0</div>
+                        <div class="metric-subtext" id="losersText">stocks</div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="charts-row">
+                    <!-- Price Comparison Chart -->
+                    <div class="chart-card large">
+                        <div class="card-header">
+                            <h3 class="card-title">Price Analysis</h3>
+                            <div class="chart-legend">
+                                <span class="legend-item">
+                                    <span class="legend-dot high"></span>
+                                    <span>Bought Price (Threshold)</span>
+                                </span>
+                                <span class="legend-item">
+                                    <span
+                                        class="legend-dot"
+                                        style="background: #10b981"
+                                    ></span>
+                                    <span>Profit</span>
+                                </span>
+                                <span class="legend-item">
+                                    <span
+                                        class="legend-dot"
+                                        style="background: #ef4444"
+                                    ></span>
+                                    <span>Loss</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="priceChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- P&L Distribution -->
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h3 class="card-title">P&L Distribution</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="pnlChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Holdings Analysis Grid -->
+                <!--<div class="table-card">
+                <div class="card-header">
+                    <h3 class="card-title">Holdings Analysis</h3>
+                </div>
+                <div class="holdings-grid" id="holdingsGrid">
+                    <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-secondary);">Loading holdings data...</div>
+                </div>
+            </div>-->
+            </main>
+        </div>
+
+        <script src="/static/js/app.js"></script>
+    </body>
+</html>

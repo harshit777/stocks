@@ -1,0 +1,103 @@
+2025-11-06 12:48:05,315 - __main__ - INFO - ======================================================================
+2025-11-06 12:48:05,315 - __main__ - INFO - 🎯 AI PAPER TRADING - Learning Mode
+2025-11-06 12:48:05,315 - __main__ - INFO - ======================================================================
+2025-11-06 12:48:05,315 - __main__ - INFO - 📊 Using REAL market data with VIRTUAL money
+2025-11-06 12:48:05,316 - __main__ - INFO - 🤖 AI will learn from simulated trades
+2025-11-06 12:48:05,316 - __main__ - INFO - ======================================================================
+2025-11-06 12:48:05,316 - src.kite_trader.trader - INFO - Kite connection initialized with access token
+2025-11-06 12:48:05,392 - __main__ - INFO - ✓ Connected to Zerodha for REAL market data
+2025-11-06 12:48:05,393 - src.paper_trading.paper_trader - INFO - Loaded paper trading state: 0 trades, ₹100,000.00 capital
+2025-11-06 12:48:05,393 - src.paper_trading.paper_trader - INFO - Paper Trading initialized with ₹100,000.00 virtual capital
+2025-11-06 12:48:05,393 - __main__ - INFO - 
+💰 Virtual Account Status:
+2025-11-06 12:48:05,393 - __main__ - INFO -   Initial Capital: ₹100,000.00
+2025-11-06 12:48:05,393 - __main__ - INFO -   Current Capital: ₹100,000.00
+2025-11-06 12:48:05,393 - __main__ - INFO -   Available: ₹100,000.00
+2025-11-06 12:48:05,393 - __main__ - INFO -   Total Return: ₹+0.00 (+0.00%)
+2025-11-06 12:48:05,393 - __main__ - INFO -   Total Trades: 0
+2025-11-06 12:48:05,393 - __main__ - INFO - 
+🤖 Initializing AI Strategy...
+2025-11-06 12:48:05,393 - src.strategies.base_strategy.AI_PaperTrader - INFO - Initialized AI_PaperTrader with min_profit_margin=0.015, risk_reward=2.5
+2025-11-06 12:48:05,393 - src.ai_modules.pattern_recognition - INFO - Pattern Recognizer initialized
+2025-11-06 12:48:05,393 - src.ai_modules.sentiment_analyzer - INFO - Sentiment Analyzer initialized
+2025-11-06 12:48:05,393 - src.ai_modules.predictive_model - INFO - Predictive Model initialized
+2025-11-06 12:48:05,393 - src.ai_modules.pattern_recognition - INFO - Patterns loaded from ai_data/patterns.json
+2025-11-06 12:48:05,393 - src.ai_modules.sentiment_analyzer - INFO - Sentiment data loaded from ai_data/sentiment.json
+2025-11-06 12:48:05,394 - src.ai_modules.predictive_model - INFO - Model loaded from ai_data/model.json
+2025-11-06 12:48:05,394 - src.strategies.base_strategy.AI_PaperTrader - INFO - AI-Enhanced Strategy initialized with confidence threshold=0.6
+2025-11-06 12:48:05,394 - __main__ - INFO - ✓ AI Strategy initialized with 10 symbols
+2025-11-06 12:48:05,394 - __main__ - INFO -   - Trading Mode: PAPER TRADING (Virtual Money)
+2025-11-06 12:48:05,394 - __main__ - INFO -   - Base Strategy: High/Low with profit validation
+2025-11-06 12:48:05,394 - __main__ - INFO -   - AI Enhancement: Pattern + Sentiment + Prediction
+2025-11-06 12:48:05,394 - __main__ - INFO -   - AI Confidence Threshold: 60%
+2025-11-06 12:48:05,394 - __main__ - INFO - 
+🚀 Starting AI Paper Trading Loop...
+2025-11-06 12:48:05,394 - __main__ - INFO - Market hours: 9:15 AM - 3:30 PM IST
+2025-11-06 12:48:05,394 - __main__ - INFO - Check interval: 60 seconds
+2025-11-06 12:48:05,394 - __main__ - INFO - ======================================================================
+2025-11-06 12:48:05,394 - __main__ - INFO - 
+======================================================================
+2025-11-06 12:48:05,394 - __main__ - INFO - 🤖 Paper Trading Iteration 1 - 2025-11-06 12:48:05
+2025-11-06 12:48:05,394 - __main__ - INFO - ======================================================================
+2025-11-06 12:48:05,950 - __main__ - INFO - 
+💰 Virtual Portfolio:
+2025-11-06 12:48:05,950 - __main__ - INFO -   Total Value: ₹100,000.00
+2025-11-06 12:48:05,950 - __main__ - INFO -   Available Cash: ₹100,000.00
+2025-11-06 12:48:05,950 - __main__ - INFO -   Total P&L: ₹+0.00 (+0.00%)
+2025-11-06 12:48:05,950 - __main__ - INFO -   Active Positions: 0
+2025-11-06 12:48:05,950 - __main__ - INFO - 
+🧠 AI Performance:
+2025-11-06 12:48:05,950 - __main__ - INFO -   AI Trades: 0
+2025-11-06 12:48:05,950 - __main__ - INFO -   Prediction Accuracy: 0.00%
+2025-11-06 12:49:05,950 - __main__ - INFO - 
+======================================================================
+2025-11-06 12:49:05,951 - __main__ - INFO - 🤖 Paper Trading Iteration 2 - 2025-11-06 12:49:05
+2025-11-06 12:49:05,951 - __main__ - INFO - ======================================================================
+2025-11-06 12:49:06,548 - __main__ - INFO - 
+💰 Virtual Portfolio:
+2025-11-06 12:49:06,549 - __main__ - INFO -   Total Value: ₹100,000.00
+2025-11-06 12:49:06,549 - __main__ - INFO -   Available Cash: ₹100,000.00
+2025-11-06 12:49:06,549 - __main__ - INFO -   Total P&L: ₹+0.00 (+0.00%)
+2025-11-06 12:49:06,549 - __main__ - INFO -   Active Positions: 0
+2025-11-06 12:49:06,549 - __main__ - INFO - 
+🧠 AI Performance:
+2025-11-06 12:49:06,550 - __main__ - INFO -   AI Trades: 0
+2025-11-06 12:49:06,550 - __main__ - INFO -   Prediction Accuracy: 0.00%
+2025-11-06 12:50:06,553 - __main__ - INFO - 
+======================================================================
+2025-11-06 12:50:06,553 - __main__ - INFO - 🤖 Paper Trading Iteration 3 - 2025-11-06 12:50:06
+2025-11-06 12:50:06,554 - __main__ - INFO - ======================================================================
+2025-11-06 12:50:07,052 - src.strategies.base_strategy.AI_PaperTrader - INFO - WIPRO: AI signal BUY (confidence: 1.00)
+2025-11-06 12:50:07,052 - src.strategies.base_strategy.AI_PaperTrader - INFO - AI Strategy signal for WIPRO: BUY (base=None, ai=BUY, confidence=1.00)
+2025-11-06 12:50:07,052 - src.strategies.base_strategy.AI_PaperTrader - INFO - Signal generated for WIPRO: BUY
+2025-11-06 12:50:07,052 - src.strategies.base_strategy.AI_PaperTrader - ERROR - Error calculating position size for WIPRO: 'PaperTradingWrapper' object has no attribute 'kite'
+2025-11-06 12:50:07,053 - src.strategies.base_strategy.AI_PaperTrader - WARNING - Invalid position size for WIPRO: 0
+2025-11-06 12:50:07,144 - __main__ - INFO - 
+💰 Virtual Portfolio:
+2025-11-06 12:50:07,144 - __main__ - INFO -   Total Value: ₹100,000.00
+2025-11-06 12:50:07,144 - __main__ - INFO -   Available Cash: ₹100,000.00
+2025-11-06 12:50:07,144 - __main__ - INFO -   Total P&L: ₹+0.00 (+0.00%)
+2025-11-06 12:50:07,145 - __main__ - INFO -   Active Positions: 0
+2025-11-06 12:50:07,145 - __main__ - INFO - 
+🧠 AI Performance:
+2025-11-06 12:50:07,145 - __main__ - INFO -   AI Trades: 0
+2025-11-06 12:50:07,145 - __main__ - INFO -   Prediction Accuracy: 0.00%
+2025-11-06 12:51:07,147 - __main__ - INFO - 
+======================================================================
+2025-11-06 12:51:07,147 - __main__ - INFO - 🤖 Paper Trading Iteration 4 - 2025-11-06 12:51:07
+2025-11-06 12:51:07,147 - __main__ - INFO - ======================================================================
+2025-11-06 12:51:07,640 - src.strategies.base_strategy.AI_PaperTrader - INFO - WIPRO: AI signal BUY (confidence: 1.00)
+2025-11-06 12:51:07,640 - src.strategies.base_strategy.AI_PaperTrader - INFO - AI Strategy signal for WIPRO: BUY (base=None, ai=BUY, confidence=1.00)
+2025-11-06 12:51:07,640 - src.strategies.base_strategy.AI_PaperTrader - INFO - Signal generated for WIPRO: BUY
+2025-11-06 12:51:07,640 - src.strategies.base_strategy.AI_PaperTrader - ERROR - Error calculating position size for WIPRO: 'PaperTradingWrapper' object has no attribute 'kite'
+2025-11-06 12:51:07,640 - src.strategies.base_strategy.AI_PaperTrader - WARNING - Invalid position size for WIPRO: 0
+2025-11-06 12:51:07,735 - __main__ - INFO - 
+💰 Virtual Portfolio:
+2025-11-06 12:51:07,735 - __main__ - INFO -   Total Value: ₹100,000.00
+2025-11-06 12:51:07,735 - __main__ - INFO -   Available Cash: ₹100,000.00
+2025-11-06 12:51:07,735 - __main__ - INFO -   Total P&L: ₹+0.00 (+0.00%)
+2025-11-06 12:51:07,736 - __main__ - INFO -   Active Positions: 0
+2025-11-06 12:51:07,736 - __main__ - INFO - 
+🧠 AI Performance:
+2025-11-06 12:51:07,736 - __main__ - INFO -   AI Trades: 0
+2025-11-06 12:51:07,736 - __main__ - INFO -   Prediction Accuracy: 0.00%

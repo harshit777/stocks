@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Portfolio Dashboard</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        />
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                background: #f3f4f6;
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .card {
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            }
+            .stat-card {
+                padding: 24px;
+                color: white;
+                border-radius: 12px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                transition: all 0.3s ease;
+            }
+            .stat-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            }
+            .stat-card.gain {
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            }
+            .stat-card.loss {
+                background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            }
+            .stat-value {
+                font-size: 24px;
+                font-weight: 700;
+            }
+            .stat-label {
+                font-size: 12px;
+                opacity: 0.9;
+                margin-bottom: 8px;
+            }
+            .table-row {
+                border-bottom: 1px solid #e5e7eb;
+            }
+            .table-row:last-child {
+                border-bottom: none;
+            }
+            \n .badge {
+                display: inline-block;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            .badge-gain {
+                background: #d1fae5;
+                color: #065f46;
+            }
+            .badge-loss {
+                background: #fee2e2;
+                color: #7f1d1d;
+            }
+            .text-gain {
+                color: #10b981;
+            }
+            .text-loss {
+                color: #ef4444;
+            }
+            .spinner {
+                display: inline-block;
+                animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+                0% {
+                    transform: rotate(0deg);
+                }
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+            .error-box {
+                background: #fee2e2;
+                border: 1px solid #fecaca;
+                border-radius: 8px;
+                padding: 12px;
+                color: #991b1b;
+                margin: 12px 0;
+            }
+            .success-box {
+                background: #d1fae5;
+                border: 1px solid #a7f3d0;
+                border-radius: 8px;
+                padding: 12px;
+                color: #065f46;
+                margin: 12px 0;
+            }
+            .header {
+                padding: 40px 20px;
+                text-align: center;
+                color: white;
+            }
+            .header h1 {
+                font-size: 32px;
+                font-weight: 700;
+                margin-bottom: 8px;
+            }
+            .header p {
+                font-size: 14px;
+                opacity: 0.9;
+            }
+            .refresh-btn {
+                background: white;
+                color: #667eea;
+                padding: 10px 20px;
+                border-radius: 8px;
+                border: none;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .refresh-btn:hover {
+                transform: scale(1.05);
+            }
+            .refresh-btn:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+            }
+            .timestamp {
+                font-size: 12px;
+                color: #6b7280;
+            }
+            .chart-container {
+                min-height: 450px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="gradient-bg">
+            <div class="header">
+                <h1>
+                    <i class="fas fa-chart-pie mr-3"></i>Portfolio Dashboard
+                </h1>
+                <p>Real-time tracking powered by Zerodha Kite API</p>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 py-8">
+            <!-- Status Messages -->
+            <div id="status-container"></div>
+
+            <!-- Controls -->
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900">
+                        Your Portfolio
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1" id="last-update">
+                        Loading...
+                    </p>
+                </div>
+                <button
+                    class="refresh-btn"
+                    onclick="refreshData()"
+                    id="refresh-btn"
+                >
+                    <i class="fas fa-sync-alt" id="refresh-icon"></i>
+                    <span id="refresh-text">Refresh</span>
+                </button>
+            </div>
+
+            <!-- Summary Cards -->
+            <div
+                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+            >
+                <div class="stat-card">
+                    <div class="stat-label">Portfolio Value</div>
+                    <div class="stat-value" id="total-value">₹0.00</div>
+                    <div class="stat-label mt-2" id="holdings-count">
+                        0 holdings
+                    </div>
+                </div>
+                <div class="stat-card" id="pnl-card">
+                    <div class="stat-label">Total P&L</div>
+                    <div class="stat-value" id="total-pnl">₹0.00</div>
+                    <div class="stat-label mt-2" id="total-pnl-percent">
+                        0.00%
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Best Performer</div>
+                    <div class="stat-value" id="best-stock">--</div>
+                    <div class="stat-label mt-2" id="best-gain">+₹0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Worst Performer</div>
+                    <div class="stat-value" id="worst-stock">--</div>
+                    <div class="stat-label mt-2" id="worst-loss">-₹0.00</div>
+                </div>
+            </div>
+
+            <!-- Holdings Table -->
+            <div class="card mb-8">
+                <div class="p-6 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        Holdings
+                    </h3>
+                </div>
+                <div id="holdings-table" class="overflow-x-auto">
+                    <div class="p-8 text-center text-gray-500">
+                        <div class="spinner mb-2">
+                            <i class="fas fa-spinner"></i>
+                        </div>
+                        <p>Loading holdings...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Positions Table -->
+            <div class="card">
+                <div class="p-6 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        Active Positions
+                    </h3>
+                </div>
+                <div id="positions-table" class="overflow-x-auto">
+                    <div class="p-8 text-center text-gray-500">
+                        <p>No active positions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let autoRefreshTimer = null;
+
+            function showStatus(message, type = "info") {
+                const container = document.getElementById("status-container");
+                const className =
+                    type === "error" ? "error-box" : "success-box";
+                const icon =
+                    type === "error"
+                        ? "fa-exclamation-circle"
+                        : "fa-check-circle";
+
+                container.innerHTML = `<div class="${className}"><i class="fas ${icon} mr-2"></i> ${message}</div>`;
+
+                if (type !== "error") {
+                    setTimeout(() => {
+                        container.innerHTML = "";
+                    }, 4000);
+                }
+            }
+
+            function formatCurrency(value) {
+                return new Intl.NumberFormat("en-IN", {
+                    style: "currency",
+                    currency: "INR",
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                }).format(value);
+            }
+
+            function updateSummaryCards(holdings) {
+                const holdings_list = holdings.holdings || [];
+                document.getElementById("total-value").textContent =
+                    formatCurrency(holdings.total_value);
+                document.getElementById("total-pnl").textContent =
+                    formatCurrency(holdings.total_pnl);
+                document.getElementById("holdings-count").textContent =
+                    `${holdings.count} holding${holdings.count !== 1 ? "s" : ""}`;
+
+                const pnlPercent = holdings.total_pnl_percent || 0;
+                const pnlPercentElem =
+                    document.getElementById("total-pnl-percent");
+                pnlPercentElem.textContent =
+                    (pnlPercent >= 0 ? "+" : "") + pnlPercent.toFixed(2) + "%";
+
+                const pnlCard = document.getElementById("pnl-card");
+                pnlCard.classList.remove("gain", "loss");
+                pnlCard.classList.add(
+                    holdings.total_pnl >= 0 ? "gain" : "loss",
+                );
+
+                if (holdings_list.length > 0) {
+                    const best = holdings_list.reduce((a, b) =>
+                        a.pnl > b.pnl ? a : b,
+                    );
+                    const worst = holdings_list.reduce((a, b) =>
+                        a.pnl < b.pnl ? a : b,
+                    );
+
+                    document.getElementById("best-stock").textContent =
+                        best.symbol;
+                    document.getElementById("best-gain").textContent =
+                        formatCurrency(best.pnl);
+                    document.getElementById("worst-stock").textContent =
+                        worst.symbol;
+                    document.getElementById("worst-loss").textContent =
+                        formatCurrency(worst.pnl);
+                }
+            }
+
+            function renderHoldingsTable(holdings_list) {
+                const table = document.getElementById("holdings-table");
+
+                if (!holdings_list || holdings_list.length === 0) {
+                    table.innerHTML =
+                        '<div class="p-8 text-center text-gray-500">No holdings found</div>';
+                    return;
+                }
+
+                let html =
+                    '<table class="w-full"><thead class="bg-gray-50 border-b-2 border-gray-200"><tr>';
+                html +=
+                    '<th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Symbol</th>';
+                html +=
+                    '<th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">Qty</th>';
+                html +=
+                    '<th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">Avg Price</th>';
+                html +=
+                    '<th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">LTP</th>';
+                html +=
+                    '<th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">Value</th>';
+                html +=
+                    '<th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">P&L</th>';
+                html +=
+                    '<th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">Return</th>';
+                html += "</tr></thead><tbody>";
+
+                holdings_list.forEach((h) => {
+                    const pnlClass = h.pnl >= 0 ? "text-gain" : "text-loss";
+                    const badgeClass = h.pnl >= 0 ? "badge-gain" : "badge-loss";
+                    const arrow = h.pnl >= 0 ? "▲" : "▼";
+
+                    html += `<tr class="table-row hover:bg-gray-50">
+                    <td class="px-6 py-4 font-semibold text-gray-900">${h.symbol}</td>
+                    <td class="px-6 py-4 text-right text-gray-700">${h.quantity}</td>
+                    <td class="px-6 py-4 text-right text-gray-700">${formatCurrency(h.avg_price)}</td>
+                    <td class="px-6 py-4 text-right text-gray-700">${formatCurrency(h.last_price)}</td>
+                    <td class="px-6 py-4 text-right font-semibold text-gray-900">${formatCurrency(h.current_value)}</td>
+                    <td class="px-6 py-4 text-right font-semibold ${pnlClass}">${formatCurrency(h.pnl)}</td>
+                    <td class="px-6 py-4 text-right"><span class="badge ${badgeClass}">${arrow} ${Math.abs(h.pnl_percent).toFixed(2)}%</span></td>
+                </tr>`;
+                });
+
+                html += "</tbody></table>";
+                table.innerHTML = html;
+            }
+
+            function renderPositionsTable(positions_list) {
+                const table = document.getElementById("positions-table");
+
+                if (!positions_list || positions_list.length === 0) {
+                    table.innerHTML =
+                        '<div class="p-8 text-center text-gray-500">No active positions</div>';
+                    return;
+                }
+
+                let html =
+                    '<table class="w-full"><thead class="bg-gray-50 border-b-2 border-gray-200"><tr>';
+                html +=
+                    '<th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Symbol</th>';
+                html +=
+                    '<th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">Type</th>';
+                html +=
+                    '<th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">Qty</th>';
+                html +=
+                    '<th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">Avg Price</th>';
+                html +=
+                    '<th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">LTP</th>';
+                html +=
+                    '<th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">P&L</th>';
+                html += "</tr></thead><tbody>";
+
+                positions_list.forEach((p) => {
+                    const pnlClass = p.pnl >= 0 ? "text-gain" : "text-loss";
+                    const typeBadge =
+                        p.type === "Short"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-blue-100 text-blue-800";
+
+                    html += `<tr class="table-row hover:bg-gray-50">
+                    <td class="px-6 py-4 font-semibold text-gray-900">${p.symbol}</td>
+                    <td class="px-6 py-4 text-right"><span class="badge ${typeBadge}">${p.type}</span></td>
+                    <td class="px-6 py-4 text-right text-gray-700">${p.quantity}</td>
+                    <td class="px-6 py-4 text-right text-gray-700">${formatCurrency(p.avg_price)}</td>
+                    <td class="px-6 py-4 text-right text-gray-700">${formatCurrency(p.last_price)}</td>
+                    <td class="px-6 py-4 text-right font-semibold ${pnlClass}">${formatCurrency(p.pnl)}</td>
+                </tr>`;
+                });
+
+                html += "</tbody></table>";
+                table.innerHTML = html;
+            }
+
+            async function refreshData() {
+                const btn = document.getElementById("refresh-btn");
+                const icon = document.getElementById("refresh-icon");
+                const text = document.getElementById("refresh-text");
+
+                btn.disabled = true;
+                icon.classList.add("spinner");
+                text.textContent = "Refreshing...";
+
+                try {
+                    const res = await fetch("/api/portfolio-data");
+                    const data = await res.json();
+
+                    if (!res.ok || data.error) {
+                        showStatus(
+                            `Error: ${data.error || "Failed to fetch data"}`,
+                            "error",
+                        );
+                    } else {
+                        updateSummaryCards(data.holdings);
+                        renderHoldingsTable(data.holdings.holdings);
+                        renderPositionsTable(data.positions);
+
+                        const now = new Date().toLocaleTimeString();
+                        document.getElementById("last-update").textContent =
+                            `Last updated: ${now}`;
+                        showStatus("Portfolio data updated", "success");
+                    }
+                } catch (e) {
+                    console.error("Error:", e);
+                    showStatus("Network error - check connection", "error");
+                } finally {
+                    btn.disabled = false;
+                    icon.classList.remove("spinner");
+                    text.textContent = "Refresh";
+                }
+            }
+
+            document.addEventListener("DOMContentLoaded", () => {
+                refreshData();
+                autoRefreshTimer = setInterval(refreshData, 60000);
+            });
+        </script>
+    </body>
+</html>

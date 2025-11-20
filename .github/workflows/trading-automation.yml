@@ -1,0 +1,141 @@
+name: Trading Automation
+
+on:
+  # Schedule: Run during market hours (Mon-Fri, 9:15 AM - 3:30 PM IST)
+  schedule:
+    # 3:45 AM UTC = 9:15 AM IST (Market Open)
+    - cron: '45 3 * * 1-5'
+    # 10:00 AM UTC = 3:30 PM IST (Market Close)
+    - cron: '0 10 * * 1-5'
+  
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'paper_trade'
+        type: choice
+        options:
+          - paper_trade
+          - train_ai
+          - both
+  
+  # Webhook/API trigger
+  repository_dispatch:
+    types: [trade-trigger, train-trigger]
+
+jobs:
+  train-ai:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'train_ai' || github.event.inputs.action == 'both' || github.event_name == 'repository_dispatch' && github.event.action == 'train-trigger'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Configure environment
+        env:
+          KITE_API_KEY: ${{ secrets.KITE_API_KEY }}
+          KITE_API_SECRET: ${{ secrets.KITE_API_SECRET }}
+          KITE_ACCESS_TOKEN: ${{ secrets.KITE_ACCESS_TOKEN }}
+          ZERODHA_USER_ID: ${{ secrets.ZERODHA_USER_ID }}
+          ZERODHA_PASSWORD: ${{ secrets.ZERODHA_PASSWORD }}
+          ZERODHA_PIN: ${{ secrets.ZERODHA_PIN }}
+        run: |
+          echo "KITE_API_KEY=${KITE_API_KEY}" >> .env
+          echo "KITE_API_SECRET=${KITE_API_SECRET}" >> .env
+          echo "KITE_ACCESS_TOKEN=${KITE_ACCESS_TOKEN}" >> .env
+          echo "ZERODHA_USER_ID=${ZERODHA_USER_ID}" >> .env
+          echo "ZERODHA_PASSWORD=${ZERODHA_PASSWORD}" >> .env
+          echo "ZERODHA_PIN=${ZERODHA_PIN}" >> .env
+      
+      - name: Train AI models
+        run: python3 scripts/train_ai.py
+      
+      - name: Upload AI models artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-models-${{ github.run_number }}
+          path: ai_data/
+          retention-days: 30
+      
+      - name: Notify on completion
+        if: always()
+        run: |
+          echo "AI training completed with status: ${{ job.status }}"
+          # Add Slack/Discord webhook notification here if needed
+
+  paper-trade:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'paper_trade' || github.event.inputs.action == 'both' || github.event_name == 'schedule' || github.event_name == 'repository_dispatch' && github.event.action == 'trade-trigger'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Configure environment
+        env:
+          KITE_API_KEY: ${{ secrets.KITE_API_KEY }}
+          KITE_API_SECRET: ${{ secrets.KITE_API_SECRET }}
+          KITE_ACCESS_TOKEN: ${{ secrets.KITE_ACCESS_TOKEN }}
+          ZERODHA_USER_ID: ${{ secrets.ZERODHA_USER_ID }}
+          ZERODHA_PASSWORD: ${{ secrets.ZERODHA_PASSWORD }}
+          ZERODHA_PIN: ${{ secrets.ZERODHA_PIN }}
+        run: |
+          echo "KITE_API_KEY=${KITE_API_KEY}" >> .env
+          echo "KITE_API_SECRET=${KITE_API_SECRET}" >> .env
+          echo "KITE_ACCESS_TOKEN=${KITE_ACCESS_TOKEN}" >> .env
+          echo "ZERODHA_USER_ID=${ZERODHA_USER_ID}" >> .env
+          echo "ZERODHA_PASSWORD=${ZERODHA_PASSWORD}" >> .env
+          echo "ZERODHA_PIN=${ZERODHA_PIN}" >> .env
+      
+      - name: Download latest AI models
+        uses: dawidd6/action-download-artifact@v3
+        continue-on-error: true
+        with:
+          workflow: trading-automation.yml
+          name: ai-models-*
+          path: ai_data/
+          search_artifacts: true
+      
+      - name: Run paper trading
+        run: |
+          # Run for limited time (e.g., 1 hour during market hours)
+          timeout 3600 python3 scripts/paper_trade.py || true
+      
+      - name: Upload trading logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trading-logs-${{ github.run_number }}
+          path: data/logs/
+          retention-days: 90
+      
+      - name: Notify on completion
+        if: always()
+        run: |
+          echo "Paper trading completed with status: ${{ job.status }}"
+          # Add Slack/Discord webhook notification here if needed
