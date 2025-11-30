@@ -27,6 +27,9 @@ from typing import List, Dict
 # Load environment
 load_dotenv()
 
+# Ensure logs directory exists
+os.makedirs('data/logs', exist_ok=True)
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
