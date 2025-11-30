@@ -78,7 +78,7 @@ class AIIntradayStrategy(IntradayHighLowStrategy):
         }
         
         # AI data directory
-        self.ai_data_dir = 'ai_data'
+        self.ai_data_dir = 'data/ai_data'
         os.makedirs(self.ai_data_dir, exist_ok=True)
         
         # Load previously learned patterns
