@@ -212,6 +212,10 @@ jobs:
           ZERODHA_PASSWORD: ${{ secrets.ZERODHA_PASSWORD }}
           ZERODHA_PIN: ${{ secrets.ZERODHA_PIN }}
           MAX_LIVE_CAPITAL: ${{ secrets.MAX_LIVE_CAPITAL }}
+          MAX_DAILY_LOSS: ${{ secrets.MAX_DAILY_LOSS }}
+          ORDER_TIMEOUT: ${{ secrets.ORDER_TIMEOUT }}
+          SLIPPAGE_TOLERANCE: ${{ secrets.SLIPPAGE_TOLERANCE }}
+          CHECK_INTERVAL: ${{ secrets.CHECK_INTERVAL }}
         run: |
           echo "KITE_API_KEY=${KITE_API_KEY}" >> .env
           echo "KITE_API_SECRET=${KITE_API_SECRET}" >> .env
@@ -220,8 +224,18 @@ jobs:
           echo "ZERODHA_PASSWORD=${ZERODHA_PASSWORD}" >> .env
           echo "ZERODHA_PIN=${ZERODHA_PIN}" >> .env
           echo "TRADING_MODE=live" >> .env
-          echo "MAX_LIVE_CAPITAL=${MAX_LIVE_CAPITAL:-6000}" >> .env
-          echo "⚠️  Environment configured for LIVE trading with ₹${MAX_LIVE_CAPITAL:-6000} limit"
+          echo "MAX_LIVE_CAPITAL=${MAX_LIVE_CAPITAL:-1000}" >> .env
+          echo "MAX_DAILY_LOSS=${MAX_DAILY_LOSS:-100}" >> .env
+          echo "ORDER_TIMEOUT=${ORDER_TIMEOUT:-30}" >> .env
+          echo "SLIPPAGE_TOLERANCE=${SLIPPAGE_TOLERANCE:-0.003}" >> .env
+          echo "CHECK_INTERVAL=${CHECK_INTERVAL:-120}" >> .env
+          echo "MAX_POSITION_SIZE_PCT=0.1" >> .env
+          echo "ENABLE_PAPER_TRADING=false" >> .env
+          echo "⚠️  Environment configured for LIVE trading"
+          echo "   Capital: ₹${MAX_LIVE_CAPITAL:-1000}"
+          echo "   Daily Loss Limit: ₹${MAX_DAILY_LOSS:-100}"
+          echo "   Order Timeout: ${ORDER_TIMEOUT:-30}s"
+          echo "   Slippage Tolerance: ${SLIPPAGE_TOLERANCE:-0.003}"
 
       - name: Check market hours (IST)
         id: market_check
@@ -279,7 +293,17 @@ jobs:
         if: steps.market_check.outputs.market_open == 'true'
         run: |
           # ⚠️  LIVE TRADING - REAL MONEY AT RISK
-          # Capital limit enforced in script: ₹6,000 (configurable via MAX_LIVE_CAPITAL secret)
+          # Capital limit: ₹1,000 (configurable via MAX_LIVE_CAPITAL secret)
+          # Daily loss limit: ₹100 (configurable via MAX_DAILY_LOSS secret)
+          # Safety features:
+          #   - Thread-safe capital tracking
+          #   - Automatic halt on daily loss limit
+          #   - LIMIT orders only (0.3% slippage tolerance)
+          #   - Duplicate order prevention
+          #   - Position reconciliation with halt on mismatch
+          #   - Broker health monitoring
+          #   - Automatic square-off at 3:20 PM IST
+          echo "Starting LIVE trading with production safety features..."
           python3 scripts/live_trade.py
 
       - name: Upload trading logs

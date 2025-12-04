@@ -63,6 +63,7 @@ See: tests/test_production_components.py
 import os
 import time
 import logging
+import threading
 from datetime import datetime
 import sys
 import pytz
@@ -92,47 +93,89 @@ logger = logging.getLogger(__name__)
 
 
 class LiveTradingCapitalGuard:
-    """Enforces strict capital limits for live trading."""
+    """Enforces strict capital limits for live trading with thread safety and loss tracking."""
     
-    def __init__(self, max_capital: float):
+    def __init__(self, max_capital: float, max_daily_loss: float = None):
         self.max_capital = max_capital
+        self.max_daily_loss = max_daily_loss or (max_capital * 0.10)  # Default 10% of capital
         self.used_capital = 0.0
+        self.starting_capital = max_capital
+        self.daily_pnl = 0.0
         self.logger = logging.getLogger(__name__)
+        self._lock = threading.Lock()
+        self.trading_halted = False
+        self.halt_reason = None
     
     def check_capital_available(self, required_capital: float) -> bool:
-        """Check if required capital is available within limit."""
-        if self.used_capital + required_capital > self.max_capital:
-            self.logger.warning(
-                f"❌ Capital limit exceeded! Used: ₹{self.used_capital:.2f}, "
-                f"Required: ₹{required_capital:.2f}, Limit: ₹{self.max_capital:.2f}"
-            )
-            return False
-        return True
+        """Check if required capital is available within limit (thread-safe)."""
+        with self._lock:
+            if self.trading_halted:
+                self.logger.error(f"🛑 Trading halted: {self.halt_reason}")
+                return False
+            
+            if self.used_capital + required_capital > self.max_capital:
+                self.logger.warning(
+                    f"❌ Capital limit exceeded! Used: ₹{self.used_capital:.2f}, "
+                    f"Required: ₹{required_capital:.2f}, Limit: ₹{self.max_capital:.2f}"
+                )
+                return False
+            return True
     
     def allocate_capital(self, amount: float):
-        """Allocate capital for a trade."""
-        self.used_capital += amount
-        self.logger.info(
-            f"💰 Capital allocated: ₹{amount:.2f} "
-            f"(Total used: ₹{self.used_capital:.2f}/{self.max_capital:.2f})"
-        )
+        """Allocate capital for a trade (thread-safe)."""
+        with self._lock:
+            self.used_capital += amount
+            self.logger.info(
+                f"💰 Capital allocated: ₹{amount:.2f} "
+                f"(Total used: ₹{self.used_capital:.2f}/{self.max_capital:.2f})"
+            )
     
-    def release_capital(self, amount: float):
-        """Release capital after closing a position."""
-        self.used_capital -= amount
-        self.logger.info(
-            f"💰 Capital released: ₹{amount:.2f} "
-            f"(Total used: ₹{self.used_capital:.2f}/{self.max_capital:.2f})"
-        )
+    def release_capital(self, amount: float, profit_loss: float = 0.0):
+        """Release capital after closing a position (thread-safe)."""
+        with self._lock:
+            self.used_capital -= amount
+            self.daily_pnl += profit_loss
+            
+            self.logger.info(
+                f"💰 Capital released: ₹{amount:.2f}, P&L: ₹{profit_loss:+.2f} "
+                f"(Total used: ₹{self.used_capital:.2f}/{self.max_capital:.2f}, "
+                f"Daily P&L: ₹{self.daily_pnl:+.2f})"
+            )
+            
+            # Check daily loss limit
+            if self.daily_pnl < -self.max_daily_loss:
+                self.trading_halted = True
+                self.halt_reason = f"Daily loss limit exceeded: ₹{self.daily_pnl:.2f} < -₹{self.max_daily_loss:.2f}"
+                self.logger.error(f"🛑 {self.halt_reason}")
+                self.logger.error("🛑 TRADING HALTED FOR THE DAY - No new positions will be opened")
     
     def get_available_capital(self) -> float:
-        """Get remaining available capital."""
-        return max(0, self.max_capital - self.used_capital)
+        """Get remaining available capital (thread-safe)."""
+        with self._lock:
+            return max(0, self.max_capital - self.used_capital)
+    
+    def get_daily_pnl(self) -> float:
+        """Get current daily P&L (thread-safe)."""
+        with self._lock:
+            return self.daily_pnl
+    
+    def is_halted(self) -> bool:
+        """Check if trading is halted (thread-safe)."""
+        with self._lock:
+            return self.trading_halted
+    
+    def reset_daily(self):
+        """Reset daily tracking (called at start of new trading day)."""
+        with self._lock:
+            self.daily_pnl = 0.0
+            self.trading_halted = False
+            self.halt_reason = None
+            self.logger.info("📊 Daily tracking reset for new trading day")
 
 
 class LiveTradingWrapper:
     """
-    Wrapper for live trading with strict capital enforcement.
+    Wrapper for live trading with strict capital enforcement, duplicate prevention, and P&L tracking.
     """
     
     def __init__(self, trader, capital_guard):
@@ -142,13 +185,16 @@ class LiveTradingWrapper:
         self.logger = logging.getLogger(__name__)
         self._market_data_cache = {}
         self.positions = {}  # Track positions with capital allocation
+        self.pending_orders = {}  # Track pending orders to prevent duplicates
+        self._order_lock = threading.Lock()  # Lock for order operations
     
     def place_order(self, symbol=None, transaction_type=None, quantity=None,
                    order_type="LIMIT", product="MIS", price=None, 
                    tradingsymbol=None, exchange=None, variety=None, **kwargs):
-        """Place INTRADAY order with capital limit enforcement.
+        """Place INTRADAY order with capital limit enforcement, duplicate prevention, and P&L tracking.
         
         Note: All orders use MIS (Margin Intraday Square-off) product type.
+        Uses LIMIT orders by default with 0.3% slippage tolerance.
         Positions will be automatically squared off by broker at 3:20 PM.
         """
         
@@ -158,7 +204,18 @@ class LiveTradingWrapper:
         if not exchange:
             exchange = "NSE"
         
-        # Get current price
+        # Check for duplicate orders (prevent placing same order multiple times)
+        with self._order_lock:
+            if symbol in self.pending_orders:
+                pending_order = self.pending_orders[symbol]
+                if pending_order['transaction_type'] == transaction_type:
+                    self.logger.warning(
+                        f"⚠️  Duplicate order blocked: {transaction_type} order for {symbol} "
+                        f"already pending (Order ID: {pending_order['order_id']})"
+                    )
+                    return None
+        
+        # Get current price (fetch fresh price right before order placement)
         symbol_key = f"{exchange}:{symbol}"
         
         try:
@@ -169,6 +226,10 @@ class LiveTradingWrapper:
                 current_price = price or 0
         except Exception as e:
             self.logger.error(f"Failed to get price for {symbol}: {e}")
+            return None
+        
+        if current_price <= 0:
+            self.logger.error(f"Invalid price for {symbol}: {current_price}")
             return None
         
         # Calculate required capital
@@ -184,6 +245,19 @@ class LiveTradingWrapper:
                 )
                 return None
         
+        # Use LIMIT orders with slippage tolerance (safer than MARKET orders)
+        slippage_tolerance = 0.003  # 0.3% slippage tolerance
+        if order_type == "LIMIT":
+            if transaction_type == "BUY":
+                # Buy slightly above current price to ensure execution
+                limit_price = current_price * (1 + slippage_tolerance)
+            else:  # SELL
+                # Sell slightly below current price to ensure execution
+                limit_price = current_price * (1 - slippage_tolerance)
+            limit_price = round(limit_price, 2)
+        else:
+            limit_price = None
+        
         # Place the INTRADAY order through real trader with production features
         # Uses: Order Manager (verification), Rate Limiter, Cost Calculator
         try:
@@ -191,34 +265,52 @@ class LiveTradingWrapper:
                 symbol=symbol,
                 transaction_type=transaction_type,
                 quantity=quantity,
-                order_type=order_type,
+                order_type="LIMIT",  # Always use LIMIT orders for safety
                 product="MIS",  # Force MIS for intraday trading
-                price=current_price if order_type == "LIMIT" else None,
+                price=limit_price,
                 verify_execution=True  # Wait for order confirmation (Order Manager)
             )
             
             if order_id:
-                # Track capital allocation
+                # Track pending order
+                with self._order_lock:
+                    self.pending_orders[symbol] = {
+                        'order_id': order_id,
+                        'transaction_type': transaction_type,
+                        'quantity': quantity,
+                        'price': limit_price
+                    }
+                
+                # Track capital allocation and P&L
                 if transaction_type == "BUY":
                     self.capital_guard.allocate_capital(required_capital)
                     self.positions[symbol] = {
                         'quantity': quantity,
-                        'avg_price': current_price,
-                        'invested': required_capital
+                        'avg_price': limit_price,
+                        'invested': required_capital,
+                        'entry_time': datetime.now()
                     }
                     self.logger.info(
-                        f"✅ LIVE BUY: {quantity} {symbol} @ ₹{current_price:.2f} "
-                        f"(Invested: ₹{required_capital:.2f})"
+                        f"✅ LIVE BUY: {quantity} {symbol} @ ₹{limit_price:.2f} "
+                        f"(Invested: ₹{required_capital:.2f}, Order: {order_id})"
                     )
                 elif transaction_type == "SELL":
                     if symbol in self.positions:
-                        self.capital_guard.release_capital(self.positions[symbol]['invested'])
-                        pnl = (current_price - self.positions[symbol]['avg_price']) * quantity
+                        entry_price = self.positions[symbol]['avg_price']
+                        pnl = (limit_price - entry_price) * quantity
+                        self.capital_guard.release_capital(self.positions[symbol]['invested'], pnl)
                         self.logger.info(
-                            f"✅ LIVE SELL: {quantity} {symbol} @ ₹{current_price:.2f} "
-                            f"(P&L: ₹{pnl:+.2f})"
+                            f"✅ LIVE SELL: {quantity} {symbol} @ ₹{limit_price:.2f} "
+                            f"(Entry: ₹{entry_price:.2f}, P&L: ₹{pnl:+.2f}, Order: {order_id})"
                         )
                         del self.positions[symbol]
+                    else:
+                        self.logger.warning(f"SELL order for {symbol} but no position tracked")
+                
+                # Remove from pending orders
+                with self._order_lock:
+                    if symbol in self.pending_orders:
+                        del self.pending_orders[symbol]
                 
                 return order_id
             else:
@@ -227,6 +319,10 @@ class LiveTradingWrapper:
                 
         except Exception as e:
             self.logger.error(f"❌ Error placing order: {e}")
+            # Remove from pending orders on failure
+            with self._order_lock:
+                if symbol in self.pending_orders:
+                    del self.pending_orders[symbol]
             return None
     
     def get_quote(self, symbols):
@@ -293,7 +389,8 @@ def main():
     
     # Safety confirmation check
     trading_mode = os.getenv('TRADING_MODE', 'paper')
-    max_capital = float(os.getenv('MAX_LIVE_CAPITAL', '6000'))
+    max_capital = float(os.getenv('MAX_LIVE_CAPITAL', '1000'))  # Default ₹1,000
+    max_daily_loss = float(os.getenv('MAX_DAILY_LOSS', str(max_capital * 0.10)))  # Default 10% of capital
     
     if trading_mode != 'live':
         logger.error("❌ TRADING_MODE must be set to 'live' in .env file")
@@ -303,6 +400,7 @@ def main():
     
     logger.info(f"✓ Trading mode: {trading_mode}")
     logger.info(f"✓ Capital limit: ₹{max_capital:.2f}")
+    logger.info(f"✓ Max daily loss: ₹{max_daily_loss:.2f}")
     logger.info(f"✓ Product: MIS (Intraday only - positions auto-squared off)")
     
     # Connect to Zerodha with production components enabled
@@ -323,8 +421,8 @@ def main():
     
     logger.info("✓ Connected to Zerodha for LIVE trading")
     
-    # Initialize capital guard
-    capital_guard = LiveTradingCapitalGuard(max_capital=max_capital)
+    # Initialize capital guard with daily loss limit
+    capital_guard = LiveTradingCapitalGuard(max_capital=max_capital, max_daily_loss=max_daily_loss)
     
     # Create live trading wrapper
     trading_wrapper = LiveTradingWrapper(real_trader, capital_guard)
@@ -432,19 +530,32 @@ def main():
                     logger.info("\n⏰ 3:20 PM - SQUARE-OFF TIME")
                     logger.info("   Closing all intraday positions before broker auto-squareoff...")
                     
-                    # Close all open positions
+                    # Close all open positions IMMEDIATELY
                     if trading_wrapper.positions:
                         for symbol in list(trading_wrapper.positions.keys()):
                             try:
                                 pos = trading_wrapper.positions[symbol]
                                 logger.info(f"   Squaring off {symbol}: {pos['quantity']} shares")
-                                # Strategy will handle the sell
-                                # Mark for exit in next iteration
+                                
+                                # ACTUALLY place the sell order
+                                order_id = trading_wrapper.place_order(
+                                    symbol=symbol,
+                                    transaction_type="SELL",
+                                    quantity=pos['quantity'],
+                                    order_type="LIMIT",
+                                    product="MIS"
+                                )
+                                
+                                if order_id:
+                                    logger.info(f"   ✓ Square-off order placed for {symbol}: {order_id}")
+                                else:
+                                    logger.error(f"   ❌ Failed to place square-off order for {symbol}")
+                                    
                             except Exception as e:
                                 logger.error(f"   Error squaring off {symbol}: {e}")
                         
                         positions_squared_off = True
-                        logger.info("   ✓ Square-off initiated. Positions will close in next iteration.")
+                        logger.info("   ✓ Square-off execution complete.")
                     else:
                         logger.info("   ✓ No positions to square off.")
                         positions_squared_off = True
@@ -470,8 +581,11 @@ def main():
                    (datetime.now(ist_tz) - last_reconciliation).total_seconds() >= reconcile_interval:
                     logger.info("\n🔍 Reconciling positions with broker...")
                     try:
+                        # Take snapshot of positions before reconciliation
+                        positions_snapshot = trading_wrapper.positions.copy()
+                        
                         reconciliation_result = real_trader.position_reconciler.reconcile_positions(
-                            trading_wrapper.positions
+                            positions_snapshot
                         )
                         
                         if reconciliation_result['status'] == 'OK':
@@ -483,17 +597,47 @@ def main():
                             )
                             for disc in reconciliation_result['discrepancies']:
                                 logger.error(f"   - {disc['symbol']}: {disc['type']}")
+                            
+                            # Halt trading if critical mismatch
+                            if reconciliation_result.get('should_halt', False):
+                                capital_guard.trading_halted = True
+                                capital_guard.halt_reason = "Critical position mismatch detected"
+                                logger.error("🛑 Trading HALTED due to position mismatch")
+                                logger.error("   Manual review and restart required")
+                                break  # Exit trading loop
                         
                         last_reconciliation = datetime.now(ist_tz)
                     except Exception as e:
                         logger.error(f"Error during position reconciliation: {e}")
                 
-                # Display capital usage
+                # Display capital usage and P&L
                 logger.info(f"\n💰 Capital Status:")
                 logger.info(f"  Max Capital: ₹{capital_guard.max_capital:,.2f}")
                 logger.info(f"  Used Capital: ₹{capital_guard.used_capital:,.2f}")
                 logger.info(f"  Available: ₹{capital_guard.get_available_capital():,.2f}")
+                logger.info(f"  Daily P&L: ₹{capital_guard.get_daily_pnl():+,.2f}")
+                logger.info(f"  Max Daily Loss: ₹{capital_guard.max_daily_loss:,.2f}")
                 logger.info(f"  Active Positions: {len(trading_wrapper.positions)}")
+                
+                # Check if trading halted
+                if capital_guard.is_halted():
+                    logger.error(f"\n🛑 TRADING HALTED: {capital_guard.halt_reason}")
+                    logger.error("   Closing any remaining positions...")
+                    # Close all positions if halted
+                    for symbol in list(trading_wrapper.positions.keys()):
+                        try:
+                            pos = trading_wrapper.positions[symbol]
+                            logger.info(f"   Emergency exit: {symbol}")
+                            trading_wrapper.place_order(
+                                symbol=symbol,
+                                transaction_type="SELL",
+                                quantity=pos['quantity'],
+                                order_type="LIMIT",
+                                product="MIS"
+                            )
+                        except Exception as e:
+                            logger.error(f"   Error closing {symbol}: {e}")
+                    break  # Exit trading loop
                 
                 # Display live positions
                 if trading_wrapper.positions:

@@ -191,17 +191,38 @@ class PositionReconciler:
             'sync_time': self.last_sync_time.isoformat()
         }
         
-        # Log summary
+        # Log summary and determine if trading should halt
+        should_halt = False
+        critical_discrepancies = []
+        
         if discrepancies:
-            self.logger.error(
-                f"Position reconciliation FAILED: {matched_count} matched, "
-                f"{len(discrepancies)} mismatched"
-            )
+            # Check for critical discrepancies that require halting
+            for disc in discrepancies:
+                if disc['type'] in ['QUANTITY_MISMATCH', 'MISSING_IN_BROKER', 'MISSING_IN_SYSTEM']:
+                    critical_discrepancies.append(disc)
+            
+            if critical_discrepancies:
+                should_halt = True
+                self.logger.error(
+                    f"Position reconciliation FAILED with {len(critical_discrepancies)} CRITICAL mismatches: "
+                    f"{matched_count} matched, {len(discrepancies)} total mismatched"
+                )
+                self.logger.error(
+                    "🛑 CRITICAL: Trading should be halted due to position mismatch. "
+                    "Manual review required."
+                )
+            else:
+                self.logger.warning(
+                    f"Position reconciliation: {matched_count} matched, "
+                    f"{len(discrepancies)} minor mismatches (price differences)"
+                )
         else:
             self.logger.info(
                 f"Position reconciliation OK: {matched_count} positions matched"
             )
         
+        result['should_halt'] = should_halt
+        result['critical_discrepancies'] = critical_discrepancies
         return result
     
     def _fetch_broker_positions(self) -> List[Dict]:
