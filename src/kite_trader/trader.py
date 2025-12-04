@@ -10,10 +10,15 @@ from datetime import datetime, timedelta
 
 
 class KiteTrader:
-    """Wrapper class for Zerodha Kite API operations."""
+"""Wrapper class for Zerodha Kite API operations with production features."""
     
-    def __init__(self):
-        """Initialize the Kite trader with API credentials."""
+    def __init__(self, enable_order_manager: bool = False, enable_rate_limiter: bool = True):
+        """Initialize the Kite trader with API credentials.
+        
+        Args:
+            enable_order_manager: Use OrderManager for verified execution
+            enable_rate_limiter: Enable API rate limiting (3 req/sec)
+        """
         self.logger = logging.getLogger(__name__)
         
         # Load credentials from environment variables
@@ -21,11 +26,43 @@ class KiteTrader:
         self.api_secret = os.getenv('KITE_API_SECRET')
         self.access_token = os.getenv('KITE_ACCESS_TOKEN')
         
+        # Trading mode
+        self.trading_mode = os.getenv('TRADING_MODE', 'paper')  # paper/dry-run/live
+        
         if not self.api_key:
             self.logger.warning("KITE_API_KEY not found in environment variables")
         
         self.kite = None
         self._initialize_connection()
+        
+        # Initialize production components
+        self.order_manager = None
+        self.rate_limiter = None
+        self.position_reconciler = None
+        
+        if enable_order_manager and self.trading_mode == 'live':
+            from .order_manager import OrderManager
+            self.order_manager = OrderManager(
+                self,
+                order_timeout=int(os.getenv('ORDER_TIMEOUT', '30')),
+                poll_interval=1.0
+            )
+            self.logger.info("OrderManager enabled for production trading")
+        
+        if enable_rate_limiter:
+            from ..utils.rate_limiter import get_rate_limiter
+            self.rate_limiter = get_rate_limiter(
+                requests_per_second=float(os.getenv('RATE_LIMIT', '3.0'))
+            )
+            self.logger.info("Rate limiter enabled (3 req/sec)")
+        
+        # Initialize position reconciler
+        from .position_reconciler import PositionReconciler
+        self.position_reconciler = PositionReconciler(self, tolerance=0.01)
+        
+        # Cost calculator
+        from ..utils.cost_calculator import get_cost_calculator
+        self.cost_calculator = get_cost_calculator()
     
     def _initialize_connection(self):
         """Initialize connection to Zerodha Kite."""
@@ -134,23 +171,60 @@ class KiteTrader:
             return []
     
     def place_order(self, symbol: str, transaction_type: str, quantity: int,
-                    order_type: str = "MARKET", product: str = "MIS",
-                    price: Optional[float] = None) -> Optional[str]:
+                    order_type: str = "LIMIT", product: str = "MIS",
+                    price: Optional[float] = None, verify_execution: bool = None) -> Optional[str]:
         """
-        Place an order.
+        Place an order with smart execution and optional verification.
         
         Args:
             symbol: Trading symbol
             transaction_type: BUY or SELL
             quantity: Number of shares
-            order_type: MARKET, LIMIT, SL, SL-M
+            order_type: LIMIT (recommended), MARKET, SL, SL-M
             product: CNC (delivery), MIS (intraday), NRML (normal)
-            price: Price for limit orders
+            price: Price for limit orders (auto-calculated if None)
+            verify_execution: Wait for execution confirmation (default: True for live trading)
         
         Returns:
             Order ID if successful, None otherwise
         """
+        # Apply rate limiting
+        if self.rate_limiter:
+            self.rate_limiter.acquire()
+        
+        # Determine if we should verify execution
+        if verify_execution is None:
+            verify_execution = (self.trading_mode == 'live' and self.order_manager is not None)
+        
         try:
+            # Smart price calculation for LIMIT orders
+            if order_type == "LIMIT" and price is None:
+                price = self._calculate_limit_price(symbol, transaction_type)
+                if not price:
+                    self.logger.error(f"Failed to calculate limit price for {symbol}")
+                    return None
+            
+            # Use order manager for verified execution in live trading
+            if verify_execution and self.order_manager:
+                result = self.order_manager.place_and_verify_order(
+                    symbol=symbol,
+                    transaction_type=transaction_type,
+                    quantity=quantity,
+                    order_type=order_type,
+                    product=product,
+                    price=price
+                )
+                if result['status'] == 'COMPLETE':
+                    self.logger.info(
+                        f"✓ Order executed: {transaction_type} {result['filled_quantity']} {symbol} "
+                        f"@ ₹{result['average_price']:.2f}"
+                    )
+                    return result['order_id']
+                else:
+                    self.logger.error(f"Order failed: {result.get('message', 'Unknown error')}")
+                    return None
+            
+            # Standard order placement (no verification)
             order_params = {
                 'tradingsymbol': symbol,
                 'exchange': 'NSE',
@@ -165,11 +239,54 @@ class KiteTrader:
                 order_params['price'] = price
             
             order_id = self.kite.place_order(**order_params)
-            self.logger.info(f"Order placed: {order_id} - {transaction_type} {quantity} {symbol}")
+            self.logger.info(f"Order placed: {order_id} - {transaction_type} {quantity} {symbol} @ ₹{price or 'MARKET'}")
             return order_id
             
         except Exception as e:
             self.logger.error(f"Failed to place order: {str(e)}")
+            return None
+    
+    def _calculate_limit_price(self, symbol: str, transaction_type: str) -> Optional[float]:
+        """
+        Calculate limit price with slippage buffer.
+        
+        Args:
+            symbol: Trading symbol
+            transaction_type: BUY or SELL
+        
+        Returns:
+            Limit price with slippage buffer
+        """
+        try:
+            # Get current LTP
+            ltp_data = self.get_ltp([symbol])
+            ltp = ltp_data.get(f"NSE:{symbol}", 0)
+            
+            if ltp <= 0:
+                return None
+            
+            # Apply slippage buffer
+            slippage = float(os.getenv('SLIPPAGE_TOLERANCE', '0.003'))  # 0.3% default
+            
+            if transaction_type == "BUY":
+                # Buy slightly above LTP to ensure execution
+                limit_price = ltp * (1 + slippage)
+            else:  # SELL
+                # Sell slightly below LTP to ensure execution
+                limit_price = ltp * (1 - slippage)
+            
+            # Round to 2 decimal places
+            limit_price = round(limit_price, 2)
+            
+            self.logger.debug(
+                f"Calculated limit price for {transaction_type} {symbol}: "
+                f"LTP=₹{ltp:.2f}, Limit=₹{limit_price:.2f}"
+            )
+            
+            return limit_price
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating limit price: {e}")
             return None
     
     def get_positions(self) -> Dict:

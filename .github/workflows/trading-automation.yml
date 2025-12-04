@@ -18,6 +18,7 @@ on:
         type: choice
         options:
           - paper_trade
+          - live_trade
           - train_ai
           - both
 
@@ -79,7 +80,7 @@ jobs:
 
   paper-trade:
     runs-on: ubuntu-latest
-    if: github.event.inputs.action == 'paper_trade' || github.event.inputs.action == 'both' || github.event_name == 'schedule' || github.event_name == 'repository_dispatch' && github.event.action == 'trade-trigger'
+    if: github.event.inputs.action == 'paper_trade' || github.event_name == 'repository_dispatch' && github.event.action == 'paper-trade-trigger'
 
     steps:
       - name: Checkout code
@@ -111,7 +112,116 @@ jobs:
           echo "ZERODHA_USER_ID=${ZERODHA_USER_ID}" >> .env
           echo "ZERODHA_PASSWORD=${ZERODHA_PASSWORD}" >> .env
           echo "ZERODHA_PIN=${ZERODHA_PIN}" >> .env
-          echo "✅ Environment configured with fresh token"
+          echo "TRADING_MODE=paper" >> .env
+          echo "✅ Environment configured for paper trading"
+
+      - name: Check market hours (IST)
+        id: market_check
+        run: |
+          # Get current time in IST (UTC+5:30)
+          IST_TIME=$(TZ='Asia/Kolkata' date +'%H:%M')
+          IST_HOUR=$(TZ='Asia/Kolkata' date +'%H')
+          IST_MINUTE=$(TZ='Asia/Kolkata' date +'%M')
+          IST_DAY=$(TZ='Asia/Kolkata' date +'%u')
+
+          echo "Current IST time: $IST_TIME"
+          echo "Day of week: $IST_DAY (1=Mon, 7=Sun)"
+
+          # Market hours: 9:15 AM - 3:30 PM IST (Mon-Fri)
+          # Convert to minutes for easier comparison
+          CURRENT_MINUTES=$((10#$IST_HOUR * 60 + 10#$IST_MINUTE))
+          MARKET_OPEN=$((9 * 60 + 15))   # 9:15 AM = 555 minutes
+          MARKET_CLOSE=$((15 * 60 + 30)) # 3:30 PM = 930 minutes
+
+          echo "Current minutes: $CURRENT_MINUTES"
+          echo "Market open: $MARKET_OPEN (9:15 AM)"
+          echo "Market close: $MARKET_CLOSE (3:30 PM)"
+
+          # Check if it's a weekday (1-5) and within market hours
+          if [ "$IST_DAY" -ge 1 ] && [ "$IST_DAY" -le 5 ]; then
+            if [ "$CURRENT_MINUTES" -ge "$MARKET_OPEN" ] && [ "$CURRENT_MINUTES" -le "$MARKET_CLOSE" ]; then
+              echo "✅ Market is OPEN - Proceeding with paper trading"
+              echo "market_open=true" >> $GITHUB_OUTPUT
+            else
+              echo "⏰ Market is CLOSED - Current time $IST_TIME is outside market hours (9:15 AM - 3:30 PM IST)"
+              echo "market_open=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "📅 Weekend - Market is CLOSED"
+            echo "market_open=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prepare runtime directories
+        if: steps.market_check.outputs.market_open == 'true'
+        run: |
+          mkdir -p data/logs ai_data
+
+      - name: Download latest AI models (optional)
+        if: steps.market_check.outputs.market_open == 'true'
+        uses: dawidd6/action-download-artifact@v3
+        continue-on-error: true
+        with:
+          workflow: trading-automation.yml
+          name: ai-models-
+          path: ai_data/
+          search_artifacts: true
+
+      - name: Run paper trading
+        if: steps.market_check.outputs.market_open == 'true'
+        run: |
+          python3 scripts/paper_trade.py
+
+      - name: Upload trading logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: paper-trading-logs-${{ github.run_number }}
+          path: data/logs/
+          retention-days: 90
+
+      - name: Notify on completion
+        if: always()
+        run: |
+          echo "Paper trading completed with status: ${{ job.status }}"
+
+  live-trade:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'live_trade' || github.event.inputs.action == 'both' || github.event_name == 'schedule' || github.event_name == 'repository_dispatch' && github.event.action == 'trade-trigger'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Configure environment for LIVE trading
+        env:
+          KITE_API_KEY: ${{ secrets.KITE_API_KEY }}
+          KITE_API_SECRET: ${{ secrets.KITE_API_SECRET }}
+          KITE_ACCESS_TOKEN: ${{ secrets.KITE_ACCESS_TOKEN }}
+          ZERODHA_USER_ID: ${{ secrets.ZERODHA_USER_ID }}
+          ZERODHA_PASSWORD: ${{ secrets.ZERODHA_PASSWORD }}
+          ZERODHA_PIN: ${{ secrets.ZERODHA_PIN }}
+          MAX_LIVE_CAPITAL: ${{ secrets.MAX_LIVE_CAPITAL }}
+        run: |
+          echo "KITE_API_KEY=${KITE_API_KEY}" >> .env
+          echo "KITE_API_SECRET=${KITE_API_SECRET}" >> .env
+          echo "KITE_ACCESS_TOKEN=${KITE_ACCESS_TOKEN}" >> .env
+          echo "ZERODHA_USER_ID=${ZERODHA_USER_ID}" >> .env
+          echo "ZERODHA_PASSWORD=${ZERODHA_PASSWORD}" >> .env
+          echo "ZERODHA_PIN=${ZERODHA_PIN}" >> .env
+          echo "TRADING_MODE=live" >> .env
+          echo "MAX_LIVE_CAPITAL=${MAX_LIVE_CAPITAL:-6000}" >> .env
+          echo "⚠️  Environment configured for LIVE trading with ₹${MAX_LIVE_CAPITAL:-6000} limit"
 
       - name: Check market hours (IST)
         id: market_check
@@ -165,23 +275,31 @@ jobs:
           path: ai_data/
           search_artifacts: true
 
-      - name: Run paper trading
+      - name: Run LIVE trading (REAL MONEY)
         if: steps.market_check.outputs.market_open == 'true'
         run: |
-          # Run paper trading continuously until market closes
-          # The Python script will monitor IST time and stop when market closes
-          python3 scripts/paper_trade.py
+          # ⚠️  LIVE TRADING - REAL MONEY AT RISK
+          # Capital limit enforced in script: ₹6,000 (configurable via MAX_LIVE_CAPITAL secret)
+          python3 scripts/live_trade.py
 
       - name: Upload trading logs
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: trading-logs-${{ github.run_number }}
+          name: live-trading-logs-${{ github.run_number }}
           path: data/logs/
           retention-days: 90
+
+      - name: Upload AI models
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ai-models-live-${{ github.run_number }}
+          path: ai_data/
+          retention-days: 30
 
       - name: Notify on completion
         if: always()
         run: |
-          echo "Paper trading completed with status: ${{ job.status }}"
+          echo "⚠️  LIVE trading completed with status: ${{ job.status }}"
           # Add Slack/Discord webhook notification here if needed
