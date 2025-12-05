@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 
 
 class KiteTrader:
-"""Wrapper class for Zerodha Kite API operations with production features."""
+    """Wrapper class for Zerodha Kite API operations with production features."""
     
     def __init__(self, enable_order_manager: bool = False, enable_rate_limiter: bool = True):
         """Initialize the Kite trader with API credentials.
