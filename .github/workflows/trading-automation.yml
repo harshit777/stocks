@@ -166,6 +166,12 @@ jobs:
           path: ai_data/
           search_artifacts: true
 
+      - name: Pre-flight check (review open positions)
+        if: steps.market_check.outputs.market_open == 'true'
+        run: |
+          echo "🛫 Running pre-flight checks..."
+          python3 scripts/preflight_check.py
+          
       - name: Run paper trading
         if: steps.market_check.outputs.market_open == 'true'
         run: |
@@ -289,6 +295,15 @@ jobs:
           path: ai_data/
           search_artifacts: true
 
+      - name: Pre-flight check (Cancel stale orders, review positions)
+        if: steps.market_check.outputs.market_open == 'true'
+        run: |
+          echo "🛫 Running pre-flight checks..."
+          echo "   - Checking for stale open orders"
+          echo "   - Reviewing open positions"
+          echo "   - Verifying account health"
+          python3 scripts/preflight_check.py
+
       - name: Run LIVE trading (REAL MONEY)
         if: steps.market_check.outputs.market_open == 'true'
         run: |
@@ -303,6 +318,8 @@ jobs:
           #   - Position reconciliation with halt on mismatch
           #   - Broker health monitoring
           #   - Automatic square-off at 3:20 PM IST
+          #   - Pre-flight check: stale order cleanup
+          #   - Automatic position sync at startup
           echo "Starting LIVE trading with production safety features..."
           python3 scripts/live_trade.py
 

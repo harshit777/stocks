@@ -165,16 +165,28 @@ class OrderManager:
         price: Optional[float],
         trigger_price: Optional[float]
     ) -> Optional[str]:
-        """Place order with retry logic."""
+        """Place order with retry logic - calls Kite API directly."""
         try:
-            order_id = self.kite.place_order(
-                symbol=symbol,
-                transaction_type=transaction_type,
-                quantity=quantity,
-                order_type=order_type,
-                product=product,
-                price=price
-            )
+            # Call Kite API directly to avoid circular dependency
+            order_params = {
+                'tradingsymbol': symbol,
+                'exchange': 'NSE',
+                'transaction_type': transaction_type,
+                'quantity': quantity,
+                'order_type': order_type,
+                'product': product,
+                'variety': 'regular'
+            }
+            
+            if order_type == "LIMIT" and price:
+                order_params['price'] = price
+            
+            if trigger_price:
+                order_params['trigger_price'] = trigger_price
+            
+            # Use the underlying kite connection directly
+            order_id = self.kite.kite.place_order(**order_params)
+            self.logger.info(f"Order placed via API: {order_id}")
             return order_id
         except Exception as e:
             self.logger.error(f"Error placing order: {e}")
@@ -258,7 +270,8 @@ class OrderManager:
             Order details dict or None
         """
         try:
-            orders = self.kite.get_orders()
+            # Call Kite API directly
+            orders = self.kite.kite.orders()
             for order in orders:
                 if order.get('order_id') == order_id:
                     return order
@@ -281,7 +294,8 @@ class OrderManager:
             True if cancelled successfully
         """
         try:
-            result = self.kite.cancel_order(order_id)
+            # Call Kite API directly
+            self.kite.kite.cancel_order(variety='regular', order_id=order_id)
             self.logger.info(f"Order {order_id} cancelled")
             return True
         except Exception as e:

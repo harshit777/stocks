@@ -66,6 +66,7 @@ import logging
 import threading
 from datetime import datetime
 import sys
+import math
 import pytz
 
 # Add project root to path
@@ -93,9 +94,9 @@ logger = logging.getLogger(__name__)
 
 
 class LiveTradingCapitalGuard:
-    """Enforces strict capital limits for live trading with thread safety and loss tracking."""
+    """Enforces strict capital limits for live trading with thread safety, loss tracking, and capital recovery."""
     
-    def __init__(self, max_capital: float, max_daily_loss: float = None):
+    def __init__(self, max_capital: float, max_daily_loss: float = None, capital_recovery_manager=None):
         self.max_capital = max_capital
         self.max_daily_loss = max_daily_loss or (max_capital * 0.10)  # Default 10% of capital
         self.used_capital = 0.0
@@ -105,6 +106,8 @@ class LiveTradingCapitalGuard:
         self._lock = threading.Lock()
         self.trading_halted = False
         self.halt_reason = None
+        self.capital_recovery_manager = capital_recovery_manager
+        self.trades_count = 0  # Track number of trades for end-of-day reporting
     
     def check_capital_available(self, required_capital: float) -> bool:
         """Check if required capital is available within limit (thread-safe)."""
@@ -125,6 +128,7 @@ class LiveTradingCapitalGuard:
         """Allocate capital for a trade (thread-safe)."""
         with self._lock:
             self.used_capital += amount
+            self.trades_count += 1
             self.logger.info(
                 f"💰 Capital allocated: ₹{amount:.2f} "
                 f"(Total used: ₹{self.used_capital:.2f}/{self.max_capital:.2f})"
@@ -170,7 +174,20 @@ class LiveTradingCapitalGuard:
             self.daily_pnl = 0.0
             self.trading_halted = False
             self.halt_reason = None
+            self.trades_count = 0
             self.logger.info("📊 Daily tracking reset for new trading day")
+    
+    def record_end_of_day(self):
+        """Record end-of-day results to capital recovery manager."""
+        if self.capital_recovery_manager:
+            max_used = self.used_capital  # Peak capital usage
+            self.capital_recovery_manager.record_day_end(
+                daily_pnl=self.daily_pnl,
+                trades_count=self.trades_count,
+                used_capital=max_used
+            )
+        else:
+            self.logger.warning("No capital recovery manager configured")
 
 
 class LiveTradingWrapper:
@@ -187,6 +204,19 @@ class LiveTradingWrapper:
         self.positions = {}  # Track positions with capital allocation
         self.pending_orders = {}  # Track pending orders to prevent duplicates
         self._order_lock = threading.Lock()  # Lock for order operations
+    
+    def _round_to_tick(self, price: float, tick: float = 0.05, direction: str = None) -> float:
+        """Round price to exchange tick size; direction can be 'up' or 'down'."""
+        if price is None:
+            return None
+        if tick <= 0:
+            return round(price, 2)
+        q = price / tick
+        if direction == 'up':
+            return round(math.ceil(q) * tick, 2)
+        if direction == 'down':
+            return round(math.floor(q) * tick, 2)
+        return round(round(q) * tick, 2)
     
     def place_order(self, symbol=None, transaction_type=None, quantity=None,
                    order_type="LIMIT", product="MIS", price=None, 
@@ -250,11 +280,12 @@ class LiveTradingWrapper:
         if order_type == "LIMIT":
             if transaction_type == "BUY":
                 # Buy slightly above current price to ensure execution
-                limit_price = current_price * (1 + slippage_tolerance)
+                raw_price = current_price * (1 + slippage_tolerance)
+                limit_price = self._round_to_tick(raw_price, tick=0.05, direction='up')
             else:  # SELL
                 # Sell slightly below current price to ensure execution
-                limit_price = current_price * (1 - slippage_tolerance)
-            limit_price = round(limit_price, 2)
+                raw_price = current_price * (1 - slippage_tolerance)
+                limit_price = self._round_to_tick(raw_price, tick=0.05, direction='down')
         else:
             limit_price = None
         
@@ -283,27 +314,95 @@ class LiveTradingWrapper:
                 
                 # Track capital allocation and P&L
                 if transaction_type == "BUY":
+                    # Validate limit_price is not None
+                    if limit_price is None or limit_price <= 0:
+                        self.logger.error(f"❌ Cannot track position: invalid limit_price={limit_price}")
+                        return order_id
+                    
                     self.capital_guard.allocate_capital(required_capital)
-                    self.positions[symbol] = {
-                        'quantity': quantity,
-                        'avg_price': limit_price,
-                        'invested': required_capital,
-                        'entry_time': datetime.now()
-                    }
-                    self.logger.info(
-                        f"✅ LIVE BUY: {quantity} {symbol} @ ₹{limit_price:.2f} "
-                        f"(Invested: ₹{required_capital:.2f}, Order: {order_id})"
-                    )
-                elif transaction_type == "SELL":
+                    
+                    # Accumulate position instead of overwriting
                     if symbol in self.positions:
-                        entry_price = self.positions[symbol]['avg_price']
-                        pnl = (limit_price - entry_price) * quantity
-                        self.capital_guard.release_capital(self.positions[symbol]['invested'], pnl)
+                        # Update existing position
+                        existing_pos = self.positions[symbol]
+                        total_qty = existing_pos.get('quantity', 0) + quantity
+                        total_invested = existing_pos.get('invested', 0) + required_capital
+                        avg_price = total_invested / total_qty if total_qty > 0 else limit_price
+                        
+                        self.positions[symbol] = {
+                            'quantity': total_qty,
+                            'avg_price': avg_price,
+                            'invested': total_invested,
+                            'entry_time': existing_pos.get('entry_time', datetime.now())
+                        }
                         self.logger.info(
-                            f"✅ LIVE SELL: {quantity} {symbol} @ ₹{limit_price:.2f} "
-                            f"(Entry: ₹{entry_price:.2f}, P&L: ₹{pnl:+.2f}, Order: {order_id})"
+                            f"✅ LIVE BUY (accumulated): {quantity} {symbol} @ ₹{limit_price:.2f} "
+                            f"(Total: {total_qty} shares @ avg ₹{avg_price:.2f}, "
+                            f"Total Invested: ₹{total_invested:.2f}, Order: {order_id})"
                         )
-                        del self.positions[symbol]
+                    else:
+                        # New position
+                        self.positions[symbol] = {
+                            'quantity': quantity,
+                            'avg_price': limit_price,
+                            'invested': required_capital,
+                            'entry_time': datetime.now()
+                        }
+                        self.logger.info(
+                            f"✅ LIVE BUY: {quantity} {symbol} @ ₹{limit_price:.2f} "
+                            f"(Invested: ₹{required_capital:.2f}, Order: {order_id})"
+                        )
+                elif transaction_type == "SELL":
+                    # Validate limit_price is not None
+                    if limit_price is None or limit_price <= 0:
+                        self.logger.error(f"❌ Cannot process SELL: invalid limit_price={limit_price}")
+                        return order_id
+                    
+                    if symbol in self.positions:
+                        existing_pos = self.positions[symbol]
+                        entry_price = existing_pos.get('avg_price', 0)
+                        existing_qty = existing_pos.get('quantity', 0)
+                        invested = existing_pos.get('invested', 0)
+                        
+                        # Validate position data
+                        if entry_price is None or entry_price <= 0:
+                            self.logger.error(f"❌ Cannot process SELL: invalid entry_price={entry_price} for {symbol}")
+                            return order_id
+                        
+                        if existing_qty <= 0:
+                            self.logger.error(f"❌ Cannot process SELL: invalid quantity={existing_qty} for {symbol}")
+                            return order_id
+                        
+                        pnl = (limit_price - entry_price) * quantity
+                        
+                        # Calculate capital to release (proportional)
+                        capital_released = invested * (quantity / existing_qty) if existing_qty > 0 else 0
+                        self.capital_guard.release_capital(capital_released, pnl)
+                        
+                        # Update position (partial or complete exit)
+                        remaining_qty = existing_qty - quantity
+                        
+                        if remaining_qty > 0:
+                            # Partial exit
+                            remaining_invested = invested - capital_released
+                            self.positions[symbol] = {
+                                'quantity': remaining_qty,
+                                'avg_price': entry_price,  # Avg price stays same
+                                'invested': remaining_invested,
+                                'entry_time': existing_pos.get('entry_time', datetime.now())
+                            }
+                            self.logger.info(
+                                f"✅ LIVE SELL (partial): {quantity} {symbol} @ ₹{limit_price:.2f} "
+                                f"(Entry: ₹{entry_price:.2f}, P&L: ₹{pnl:+.2f}, "
+                                f"Remaining: {remaining_qty} shares, Order: {order_id})"
+                            )
+                        else:
+                            # Complete exit
+                            del self.positions[symbol]
+                            self.logger.info(
+                                f"✅ LIVE SELL (complete): {quantity} {symbol} @ ₹{limit_price:.2f} "
+                                f"(Entry: ₹{entry_price:.2f}, P&L: ₹{pnl:+.2f}, Order: {order_id})"
+                            )
                     else:
                         self.logger.warning(f"SELL order for {symbol} but no position tracked")
                 
@@ -368,29 +467,126 @@ class LiveTradingWrapper:
     def profile(self):
         """Alias for get_profile for compatibility."""
         return self.get_profile()
+    
+    def sync_positions_from_broker(self):
+        """Sync positions from broker to fix any mismatches."""
+        try:
+            # First, clean up any invalid positions in our tracking
+            invalid_positions = []
+            for symbol, pos in list(self.positions.items()):
+                avg_price = pos.get('avg_price', 0)
+                quantity = pos.get('quantity', 0)
+                
+                if avg_price is None or avg_price <= 0 or quantity <= 0:
+                    invalid_positions.append(symbol)
+            
+            for symbol in invalid_positions:
+                self.logger.warning(
+                    f"Removing invalid position from tracking: {symbol} "
+                    f"(price={self.positions[symbol].get('avg_price')}, "
+                    f"qty={self.positions[symbol].get('quantity')})"
+                )
+                del self.positions[symbol]
+            
+            broker_positions = self.trader.get_positions()
+            net_positions = broker_positions.get('net', [])
+            
+            synced_count = len(invalid_positions)  # Count cleaned positions
+            
+            for pos in net_positions:
+                if pos.get('quantity', 0) == 0:
+                    continue
+                
+                symbol = pos['tradingsymbol']
+                broker_qty = pos.get('quantity', 0)
+                broker_avg_price = pos.get('average_price', 0)
+                
+                # Skip if invalid data from broker
+                if broker_qty == 0 or broker_avg_price is None or broker_avg_price <= 0:
+                    self.logger.warning(
+                        f"Skipping {symbol}: invalid broker data (qty={broker_qty}, price={broker_avg_price})"
+                    )
+                    # Also remove from our tracking if it exists with invalid data
+                    if symbol in self.positions:
+                        self.logger.warning(f"Removing {symbol} from tracking (invalid broker data)")
+                        del self.positions[symbol]
+                        synced_count += 1
+                    continue
+                
+                # Update our tracking
+                if symbol in self.positions:
+                    tracked_qty = self.positions[symbol].get('quantity', 0)
+                    if tracked_qty != broker_qty:
+                        self.logger.warning(
+                            f"Syncing {symbol}: tracked={tracked_qty}, broker={broker_qty}"
+                        )
+                        # Update to match broker
+                        self.positions[symbol]['quantity'] = broker_qty
+                        self.positions[symbol]['avg_price'] = broker_avg_price
+                        self.positions[symbol]['invested'] = broker_qty * broker_avg_price
+                        synced_count += 1
+                else:
+                    # Position exists in broker but not tracked
+                    self.logger.warning(
+                        f"Adding untracked position from broker: {symbol} ({broker_qty} shares)"
+                    )
+                    self.positions[symbol] = {
+                        'quantity': broker_qty,
+                        'avg_price': broker_avg_price,
+                        'invested': broker_qty * broker_avg_price,
+                        'entry_time': datetime.now()
+                    }
+                    synced_count += 1
+            
+            # Remove positions that don't exist in broker
+            positions_to_remove = []
+            for symbol in self.positions:
+                if not any(p['tradingsymbol'] == symbol and p.get('quantity', 0) != 0 
+                          for p in net_positions):
+                    positions_to_remove.append(symbol)
+            
+            for symbol in positions_to_remove:
+                self.logger.warning(
+                    f"Removing {symbol} from tracking (not in broker positions)"
+                )
+                del self.positions[symbol]
+                synced_count += 1
+            
+            if synced_count > 0:
+                self.logger.info(f"✓ Synced {synced_count} position(s) with broker")
+            else:
+                self.logger.info("✓ Positions already in sync with broker")
+            
+            return synced_count
+            
+        except Exception as e:
+            self.logger.error(f"Error syncing positions from broker: {e}")
+            return 0
 
 
 def main():
-    """Run AI-powered INTRADAY live trading with capital limit and production features."""
+    """Run AI-powered INTRADAY live trading with capital limit, production features, and capital recovery."""
     
     from src.kite_trader.trader import KiteTrader
     from src.strategies.ai_intraday_strategy import AIIntradayStrategy
+    from src.utils.capital_manager import CapitalRecoveryManager
     
     # Initialize components
     logger.info("=" * 70)
     logger.info("⚠️  LIVE INTRADAY TRADING MODE - REAL MONEY AT RISK")
     logger.info("=" * 70)
-    logger.info("💰 Maximum Capital: ₹6,000")
+    logger.info("💰 Maximum Capital: ₹1,000")
     logger.info("📊 Product Type: MIS (Margin Intraday Square-off)")
     logger.info("⏰ Auto Square-off: 3:20 PM IST (before market close)")
     logger.info("🔧 Production Features: Order Manager, Rate Limiter, Position Reconciliation")
     logger.info("🤖 AI-powered trading with strict risk management")
+    logger.info("🔄 Capital Recovery: Automatic adjustment based on daily P&L")
     logger.info("=" * 70)
     
     # Safety confirmation check
     trading_mode = os.getenv('TRADING_MODE', 'paper')
-    max_capital = float(os.getenv('MAX_LIVE_CAPITAL', '1000'))  # Default ₹1,000
-    max_daily_loss = float(os.getenv('MAX_DAILY_LOSS', str(max_capital * 0.10)))  # Default 10% of capital
+    max_initial_capital = float(os.getenv('MAX_LIVE_CAPITAL', '1000'))  # Default ₹1,000
+    max_daily_loss = float(os.getenv('MAX_DAILY_LOSS', str(max_initial_capital * 0.10)))  # Default 10% of capital
     
     if trading_mode != 'live':
         logger.error("❌ TRADING_MODE must be set to 'live' in .env file")
@@ -398,10 +594,24 @@ def main():
         logger.error("   Exiting for safety.")
         return
     
+    # Initialize Capital Recovery Manager
+    logger.info("\n📊 Initializing Capital Recovery Manager...")
+    capital_manager = CapitalRecoveryManager(max_initial_capital=max_initial_capital)
+    
+    # Get today's available capital (adjusted from previous day's performance)
+    available_capital = capital_manager.get_available_capital()
+    recovery_status = capital_manager.get_recovery_status()
+    
     logger.info(f"✓ Trading mode: {trading_mode}")
-    logger.info(f"✓ Capital limit: ₹{max_capital:.2f}")
+    logger.info(f"✓ Max initial capital: ₹{max_initial_capital:.2f}")
+    logger.info(f"✓ Available capital today: ₹{available_capital:.2f}")
+    logger.info(f"✓ Recovery status: {recovery_status['message']}")
+    logger.info(f"✓ Capital recovery: {recovery_status['recovery_pct']:.1f}%")
     logger.info(f"✓ Max daily loss: ₹{max_daily_loss:.2f}")
     logger.info(f"✓ Product: MIS (Intraday only - positions auto-squared off)")
+    
+    # Use the dynamically calculated available capital
+    max_capital = available_capital
     
     # Connect to Zerodha with production components enabled
     logger.info("\n🔧 Initializing production trading components...")
@@ -421,8 +631,12 @@ def main():
     
     logger.info("✓ Connected to Zerodha for LIVE trading")
     
-    # Initialize capital guard with daily loss limit
-    capital_guard = LiveTradingCapitalGuard(max_capital=max_capital, max_daily_loss=max_daily_loss)
+    # Initialize capital guard with daily loss limit and capital recovery manager
+    capital_guard = LiveTradingCapitalGuard(
+        max_capital=max_capital, 
+        max_daily_loss=max_daily_loss,
+        capital_recovery_manager=capital_manager
+    )
     
     # Create live trading wrapper
     trading_wrapper = LiveTradingWrapper(real_trader, capital_guard)
@@ -492,6 +706,17 @@ def main():
     logger.info(f"  - AI Confidence Threshold: 70%")
     logger.info(f"  - Stop Loss: 1.5%")
     logger.info(f"  - Auto Square-off: 3:20 PM IST (by broker)")
+    
+    # Sync with broker at startup to prevent mismatches
+    logger.info("\n🔄 Syncing positions with broker at startup...")
+    try:
+        synced = trading_wrapper.sync_positions_from_broker()
+        if synced > 0:
+            logger.info(f"✓ Synced {synced} existing position(s) from broker")
+        else:
+            logger.info("✓ No existing positions to sync")
+    except Exception as e:
+        logger.warning(f"⚠️  Could not sync positions at startup: {e}")
     
     # Market hours (IST) - Intraday trading
     market_open = 9 * 60 + 15      # 9:15 AM
@@ -598,13 +823,21 @@ def main():
                             for disc in reconciliation_result['discrepancies']:
                                 logger.error(f"   - {disc['symbol']}: {disc['type']}")
                             
-                            # Halt trading if critical mismatch
-                            if reconciliation_result.get('should_halt', False):
-                                capital_guard.trading_halted = True
-                                capital_guard.halt_reason = "Critical position mismatch detected"
-                                logger.error("🛑 Trading HALTED due to position mismatch")
-                                logger.error("   Manual review and restart required")
-                                break  # Exit trading loop
+                            # Auto-fix: Sync positions from broker
+                            logger.info("\n🔧 Attempting to auto-fix by syncing with broker...")
+                            synced = trading_wrapper.sync_positions_from_broker()
+                            
+                            if synced > 0:
+                                logger.info(f"✓ Auto-fixed {synced} position mismatch(es)")
+                                logger.info("✓ Trading can continue")
+                            else:
+                                # Only halt if auto-fix fails and it's critical
+                                if reconciliation_result.get('should_halt', False):
+                                    capital_guard.trading_halted = True
+                                    capital_guard.halt_reason = "Critical position mismatch - auto-fix failed"
+                                    logger.error("🛑 Trading HALTED due to position mismatch")
+                                    logger.error("   Manual review and restart required")
+                                    break  # Exit trading loop
                         
                         last_reconciliation = datetime.now(ist_tz)
                     except Exception as e:
@@ -645,17 +878,29 @@ def main():
                     try:
                         quotes = trading_wrapper.get_quote(list(trading_wrapper.positions.keys()))
                         for symbol, pos in trading_wrapper.positions.items():
+                            # Handle None values safely
+                            avg_price = pos.get('avg_price') or 0
+                            quantity = pos.get('quantity') or 0
+                            invested = pos.get('invested') or 0
+                            
+                            if avg_price <= 0 or quantity <= 0:
+                                logger.warning(f"  ⚠️  {symbol}: Invalid position data (price={avg_price}, qty={quantity})")
+                                continue
+                            
                             symbol_key = f"NSE:{symbol}"
-                            current_price = quotes.get(symbol_key, {}).get('last_price', pos['avg_price'])
-                            pnl = (current_price - pos['avg_price']) * pos['quantity']
-                            pnl_pct = (pnl / pos['invested']) * 100
+                            current_price = quotes.get(symbol_key, {}).get('last_price', avg_price)
+                            
+                            # Calculate P&L safely
+                            pnl = (current_price - avg_price) * quantity if current_price > 0 else 0
+                            pnl_pct = (pnl / invested * 100) if invested > 0 else 0
                             pnl_emoji = "🟢" if pnl > 0 else "🔴" if pnl < 0 else "⚪"
+                            
                             logger.info(
-                                f"  {pnl_emoji} {symbol}: {pos['quantity']} @ ₹{pos['avg_price']:.2f} "
+                                f"  {pnl_emoji} {symbol}: {quantity} @ ₹{avg_price:.2f} "
                                 f"(Current: ₹{current_price:.2f}, P&L: ₹{pnl:+.2f} / {pnl_pct:+.2f}%)"
                             )
                     except Exception as e:
-                        logger.error(f"Error displaying positions: {e}")
+                        logger.error(f"Error displaying positions: {e}", exc_info=True)
                 
                 # Save models periodically
                 if iteration_count % 5 == 0:
@@ -679,7 +924,22 @@ def main():
                 logger.info(f"\n💰 Final Capital Status:")
                 logger.info(f"  Max Capital: ₹{capital_guard.max_capital:,.2f}")
                 logger.info(f"  Used Capital: ₹{capital_guard.used_capital:,.2f}")
+                logger.info(f"  Daily P&L: ₹{capital_guard.get_daily_pnl():+,.2f}")
+                logger.info(f"  Total Trades: {capital_guard.trades_count}")
                 logger.info(f"  Active Positions: {len(trading_wrapper.positions)}")
+                
+                # Record end of day to capital recovery manager
+                logger.info("\n💾 Recording end-of-day results to capital recovery manager...")
+                capital_guard.record_end_of_day()
+                
+                # Display performance summary
+                perf_summary = capital_manager.get_performance_summary()
+                logger.info(f"\n📈 Overall Performance:")
+                logger.info(f"  Total Trading Days: {perf_summary['total_days']}")
+                logger.info(f"  Total P&L: ₹{perf_summary['total_pnl']:+,.2f}")
+                logger.info(f"  Avg Daily P&L: ₹{perf_summary['avg_daily_pnl']:+,.2f}")
+                logger.info(f"  Win Rate: {perf_summary['win_rate']:.1f}%")
+                logger.info(f"  Capital Recovery: {perf_summary['capital_recovery_pct']:.1f}%")
                 
                 # Save final state
                 strategy._save_ai_models()
@@ -712,13 +972,26 @@ def main():
         logger.info("\n💾 Saving final state...")
         strategy._save_ai_models()
         
+        # Record end of day if not already recorded
+        if capital_guard.get_daily_pnl() != 0 or capital_guard.trades_count > 0:
+            logger.info("Recording final capital state...")
+            capital_guard.record_end_of_day()
+        
         # Final summary
         logger.info("\n" + "=" * 70)
         logger.info("📊 LIVE TRADING SESSION SUMMARY")
         logger.info("=" * 70)
         logger.info(f"Total Iterations: {iteration_count}")
+        logger.info(f"Final Daily P&L: ₹{capital_guard.get_daily_pnl():+,.2f}")
+        logger.info(f"Total Trades: {capital_guard.trades_count}")
         logger.info(f"Final Used Capital: ₹{capital_guard.used_capital:,.2f}")
         logger.info(f"Open Positions: {len(trading_wrapper.positions)}")
+        
+        # Display next day's capital projection
+        next_capital = capital_guard.starting_capital + capital_guard.get_daily_pnl()
+        next_capital = max(0, min(next_capital, max_initial_capital))
+        logger.info(f"\n🔮 Tomorrow's Available Capital: ₹{next_capital:,.2f}")
+        
         logger.info("=" * 70)
         logger.info("\n✅ Live trading session ended. Check logs for details.")
 
