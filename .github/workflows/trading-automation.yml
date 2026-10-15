@@ -3,10 +3,9 @@ name: Trading Automation
 on:
   # Schedule: Run during market hours (Mon-Fri, 9:15 AM - 3:30 PM IST)
   schedule:
-    # 3:45 AM UTC = 9:15 AM IST (Market Open)
+    # 3:45 AM UTC = 9:15 AM IST (Market Open). live_trade_v2.py runs the whole
+    # session itself (square-off 3:20 PM, EOD accounting) so one start is enough.
     - cron: "45 3 * * 1-5"
-    # 10:00 AM UTC = 3:30 PM IST (Market Close)
-    - cron: "0 10 * * 1-5"
 
   # Manual trigger
   workflow_dispatch:
@@ -192,6 +191,12 @@ jobs:
 
   live-trade:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      contents: write   # publish status branch / read+delete trading-control branch
+    concurrency:
+      group: live-trade
+      cancel-in-progress: false
     if: github.event.inputs.action == 'live_trade' || github.event.inputs.action == 'both' || github.event_name == 'schedule' || github.event_name == 'repository_dispatch' && github.event.action == 'trade-trigger'
 
     steps:
@@ -217,6 +222,8 @@ jobs:
           ZERODHA_USER_ID: ${{ secrets.ZERODHA_USER_ID }}
           ZERODHA_PASSWORD: ${{ secrets.ZERODHA_PASSWORD }}
           ZERODHA_PIN: ${{ secrets.ZERODHA_PIN }}
+          ZERODHA_TOTP_SECRET: ${{ secrets.ZERODHA_TOTP_SECRET }}
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
           MAX_LIVE_CAPITAL: ${{ secrets.MAX_LIVE_CAPITAL }}
           MAX_DAILY_LOSS: ${{ secrets.MAX_DAILY_LOSS }}
           ORDER_TIMEOUT: ${{ secrets.ORDER_TIMEOUT }}
@@ -229,17 +236,19 @@ jobs:
           echo "ZERODHA_USER_ID=${ZERODHA_USER_ID}" >> .env
           echo "ZERODHA_PASSWORD=${ZERODHA_PASSWORD}" >> .env
           echo "ZERODHA_PIN=${ZERODHA_PIN}" >> .env
+          echo "ZERODHA_TOTP_SECRET=${ZERODHA_TOTP_SECRET}" >> .env
+          echo "NEWSAPI_KEY=${NEWSAPI_KEY}" >> .env
           echo "TRADING_MODE=live" >> .env
-          echo "MAX_LIVE_CAPITAL=${MAX_LIVE_CAPITAL:-1000}" >> .env
-          echo "MAX_DAILY_LOSS=${MAX_DAILY_LOSS:-100}" >> .env
+          echo "MAX_LIVE_CAPITAL=${MAX_LIVE_CAPITAL:-500}" >> .env
+          echo "MAX_DAILY_LOSS=${MAX_DAILY_LOSS:-50}" >> .env
           echo "ORDER_TIMEOUT=${ORDER_TIMEOUT:-30}" >> .env
           echo "SLIPPAGE_TOLERANCE=${SLIPPAGE_TOLERANCE:-0.003}" >> .env
           echo "CHECK_INTERVAL=${CHECK_INTERVAL:-120}" >> .env
           echo "MAX_POSITION_SIZE_PCT=0.1" >> .env
           echo "ENABLE_PAPER_TRADING=false" >> .env
           echo "⚠️  Environment configured for LIVE trading"
-          echo "   Capital: ₹${MAX_LIVE_CAPITAL:-1000}"
-          echo "   Daily Loss Limit: ₹${MAX_DAILY_LOSS:-100}"
+          echo "   Capital: ₹${MAX_LIVE_CAPITAL:-500}"
+          echo "   Daily Loss Limit: ₹${MAX_DAILY_LOSS:-50}"
           echo "   Order Timeout: ${ORDER_TIMEOUT:-30}s"
           echo "   Slippage Tolerance: ${SLIPPAGE_TOLERANCE:-0.003}"
 
@@ -268,7 +277,7 @@ jobs:
           # Check if it's a weekday (1-5) and within market hours
           if [ "$IST_DAY" -ge 1 ] && [ "$IST_DAY" -le 5 ]; then
             if [ "$CURRENT_MINUTES" -ge "$MARKET_OPEN" ] && [ "$CURRENT_MINUTES" -le "$MARKET_CLOSE" ]; then
-              echo "✅ Market is OPEN - Proceeding with paper trading"
+              echo "✅ Market is OPEN - Proceeding with live trading"
               echo "market_open=true" >> $GITHUB_OUTPUT
             else
               echo "⏰ Market is CLOSED - Current time $IST_TIME is outside market hours (9:15 AM - 3:30 PM IST)"
@@ -295,6 +304,10 @@ jobs:
           path: ai_data/
           search_artifacts: true
 
+      - name: Refresh Kite access token (TOTP)
+        if: steps.market_check.outputs.market_open == 'true'
+        run: python3 kite_auth.py
+
       - name: Pre-flight check (Cancel stale orders, review positions)
         if: steps.market_check.outputs.market_open == 'true'
         run: |
@@ -306,10 +319,24 @@ jobs:
 
       - name: Run LIVE trading (REAL MONEY)
         if: steps.market_check.outputs.market_open == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GitHub jobs are capped at 6h; square off at 3:00 PM IST (900 min) so a
+          # 9:15 AM start finishes inside the cap.
+          SQUARE_OFF_MINUTES: "900"
         run: |
+          # Clear any stale stop flag from a previous run, then start the publisher
+          # (status page updates + watches for the trading-control stop branch).
+          REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push -q "$REPO_URL" --delete trading-control 2>/dev/null || true
+          rm -f data/STOP
+          bash scripts/ci_publisher.sh &
+          PUBLISHER_PID=$!
+          trap 'kill $PUBLISHER_PID 2>/dev/null || true' EXIT
+
           # ⚠️  LIVE TRADING - REAL MONEY AT RISK
-          # Capital limit: ₹1,000 (configurable via MAX_LIVE_CAPITAL secret)
-          # Daily loss limit: ₹100 (configurable via MAX_DAILY_LOSS secret)
+          # Capital limit: ₹500 (configurable via MAX_LIVE_CAPITAL secret)
+          # Daily loss limit: ₹50 (configurable via MAX_DAILY_LOSS secret)
           # Safety features:
           #   - Thread-safe capital tracking
           #   - Automatic halt on daily loss limit
@@ -321,7 +348,16 @@ jobs:
           #   - Pre-flight check: stale order cleanup
           #   - Automatic position sync at startup
           echo "Starting LIVE trading with production safety features..."
-          python3 scripts/live_trade.py
+          set +e
+          python3 scripts/live_trade_v2.py
+          RC=$?
+          set -e
+
+          # Final status publish + clear the stop flag so tomorrow starts clean
+          kill $PUBLISHER_PID 2>/dev/null || true
+          bash scripts/ci_publisher.sh once || true
+          git push -q "$REPO_URL" --delete trading-control 2>/dev/null || true
+          exit $RC
 
       - name: Upload trading logs
         uses: actions/upload-artifact@v4

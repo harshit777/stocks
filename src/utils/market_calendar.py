@@ -6,6 +6,7 @@ Detects market holidays and trading sessions for NSE.
 from datetime import datetime, date
 from typing import List, Set
 import logging
+import pytz
 
 
 class MarketCalendar:
@@ -19,6 +20,8 @@ class MarketCalendar:
     """
     
     # NSE Holidays for 2025 (updated annually)
+    # ponytail: hardcoded for 2025 only — update each year or replace with
+    # a live fetch from NSE's holiday API: https://www.nseindia.com/api/holiday-master?type=trading
     NSE_HOLIDAYS_2025 = {
         date(2025, 1, 26): "Republic Day",
         date(2025, 3, 14): "Mahashivratri",
@@ -38,6 +41,8 @@ class MarketCalendar:
         date(2025, 12, 25): "Christmas",
     }
     
+    IST = pytz.timezone('Asia/Kolkata')
+
     def __init__(self):
         """Initialize market calendar."""
         self.logger = logging.getLogger(__name__)
@@ -123,17 +128,17 @@ class MarketCalendar:
     def get_market_status(self) -> dict:
         """
         Get current market status.
-        
+
         Returns:
             Dict with market status information
         """
-        now = datetime.now()
+        now = datetime.now(self.IST)
         today = now.date()
-        
+
         is_trading_day = self.is_trading_day(today)
         is_weekend = today.weekday() >= 5
         is_holiday = self.is_holiday(today)
-        
+
         # Market hours (IST): 9:15 AM - 3:30 PM
         current_time = now.hour * 60 + now.minute
         market_open_time = 9 * 60 + 15  # 9:15 AM

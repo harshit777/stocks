@@ -570,6 +570,7 @@ def main():
     from src.kite_trader.trader import KiteTrader
     from src.strategies.ai_intraday_strategy import AIIntradayStrategy
     from src.utils.capital_manager import CapitalRecoveryManager
+    from src.utils.broker_health import BrokerHealthMonitor
     
     # Initialize components
     logger.info("=" * 70)
@@ -728,6 +729,13 @@ def main():
     check_interval = 120  # Check every 2 minutes for live trading (less aggressive)
     positions_squared_off = False  # Track if we've squared off positions
     last_reconciliation = None  # Track last position reconciliation time
+
+    # Broker health monitor — halt trading if API is down for 3+ consecutive checks
+    broker_health = BrokerHealthMonitor(
+        real_trader,
+        check_interval=120,   # align with trading loop cadence
+        failure_threshold=3
+    )
     
     logger.info("\n🚀 Starting LIVE Trading Loop...")
     logger.info(f"Market hours: 9:15 AM - 3:30 PM IST")
@@ -745,6 +753,18 @@ def main():
             is_market_hours = market_open <= current_minutes <= market_close
             
             if is_weekday and is_market_hours:
+                # Broker health check — skip iteration and halt if API is persistently down
+                health = broker_health.check_health()
+                if health['should_halt']:
+                    logger.error(f"🚨 Broker health check failed {health['consecutive_failures']} times — halting trading.")
+                    capital_guard.trading_halted = True
+                    capital_guard.halt_reason = "Broker API unreachable"
+                    break
+                if not health['is_healthy']:
+                    logger.warning(f"⚠️  Broker health check failed, skipping iteration.")
+                    time.sleep(check_interval)
+                    continue
+
                 iteration_count += 1
                 logger.info(f"\n{'='*70}")
                 logger.info(f"💼 LIVE INTRADAY Trading Iteration {iteration_count} - {current_time.strftime('%Y-%m-%d %H:%M:%S')}")

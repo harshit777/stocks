@@ -134,7 +134,8 @@ class PositionReconciler:
                 continue
             
             # Compare average prices (with tolerance)
-            tracked_price = tracked_pos.get('average_price', 0)
+            # Support both 'average_price' (broker/reconciler) and 'avg_price' (LiveTradingWrapper)
+            tracked_price = tracked_pos.get('average_price') or tracked_pos.get('avg_price', 0)
             broker_price = broker_pos.get('average_price', 0)
             
             if not self._prices_match(tracked_price, broker_price):

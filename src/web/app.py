@@ -4,6 +4,9 @@ Modern Portfolio Dashboard with FastAPI
 Dark theme with sleek design inspired by modern analytics platforms
 """
 import os
+import warnings
+warnings.filterwarnings('ignore', message='.*NotOpenSSLWarning.*')
+warnings.filterwarnings('ignore', category=Warning, module='urllib3')
 from datetime import datetime, timedelta
 from typing import Dict, List
 from collections import deque
@@ -17,8 +20,8 @@ import pytz
 import threading
 import json
 
-# Load environment
-env_path = os.path.join(os.path.dirname(__file__), '.env')
+# Load environment — .env lives at project root (two levels up from src/web/)
+env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
 load_dotenv(env_path, override=True)
 
 app = FastAPI(title="Portfolio Dashboard")
@@ -34,7 +37,7 @@ app.add_middleware(
 
 # Mount static files and templates
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 
 # In-memory storage for portfolio history (last 2 hours)
 portfolio_history = deque(maxlen=240)  # 2 hours at 30-second intervals = 240 points
@@ -65,6 +68,46 @@ paper_trading_status = {
 }
 paper_trading_thread = None
 paper_trading_logs = deque(maxlen=100)  # Keep last 100 log entries
+
+# ── ML training state ─────────────────────────────────────────────────────────
+ml_train_status = {
+    'state': 'idle',       # idle | running | completed | error
+    'progress': 0,
+    'step': '',
+    'error': None,
+    'metadata': None,      # populated on completion
+}
+ml_train_thread = None
+
+# ── Live trading agent state ──────────────────────────────────────────────────
+live_trading_status = {
+    'state': 'idle',          # idle | running | stopping | stopped | error
+    'start_time': None,
+    'iteration': 0,
+    'last_update': None,
+    'error': None,
+    'mode': 'paper',          # paper | live
+}
+live_trading_logs: deque = deque(maxlen=500)
+live_trading_thread = None
+
+# Shared agent state written by the background thread, read by API
+live_agent_state: Dict = {
+    'watchlist': [],
+    'watchlist_scores': [],  # [{symbol, composite_score, vol_surge, gap_pct, day_range_pct, price_momentum}]
+    'signals': {},           # symbol → 'BUY'/'SELL'/None
+    'positions': {},         # symbol → {qty, avg_price, unrealised_pnl, pnl_pct}
+    'risk': {
+        'available_capital': 0, 'used_capital': 0,
+        'daily_pnl': 0, 'halted': False, 'halt_reason': '',
+        'open_positions': 0, 'trades_today': 0,
+    },
+    'post_trade': {
+        'daily_pnl': 0, 'daily_trades': 0,
+        'daily_wins': 0, 'daily_losses': 0, 'win_rate': 0,
+    },
+    'pnl_history': deque(maxlen=180),  # (timestamp, pnl) — 6 hrs @ 2-min ticks
+}
 
 
 def get_trader():
@@ -1259,6 +1302,511 @@ async def get_funds() -> Dict:
             "message": str(e),
             "data": None
         }
+
+
+# ── Live Trading Dashboard route & APIs ───────────────────────────────────────
+
+@app.get("/live-trading")
+async def live_trading_page(request: Request):
+    return templates.TemplateResponse("live_trading.html", {"request": request})
+
+
+@app.post("/api/live-trading/start")
+async def start_live_trading(request: Request) -> Dict:
+    global live_trading_status, live_trading_thread, live_trading_logs, live_agent_state
+    if live_trading_status['state'] == 'running':
+        return {"success": False, "message": "Already running"}
+    try:
+        data = await request.json()
+        mode = data.get('mode', 'paper')          # 'paper' or 'live'
+        capital = float(data.get('capital', 1000))
+
+        live_trading_status.update({
+            'state': 'running', 'mode': mode,
+            'start_time': datetime.now().isoformat(),
+            'iteration': 0, 'last_update': None, 'error': None,
+        })
+        live_trading_logs.clear()
+        live_agent_state['pnl_history'].clear()
+
+        live_trading_thread = threading.Thread(
+            target=_run_live_trading_background,
+            args=(mode, capital),
+            daemon=True,
+        )
+        live_trading_thread.start()
+        return {"success": True, "message": f"Started in {mode} mode"}
+    except Exception as e:
+        live_trading_status['state'] = 'error'
+        live_trading_status['error'] = str(e)
+        return {"success": False, "message": str(e)}
+
+
+@app.post("/api/live-trading/stop")
+async def stop_live_trading() -> Dict:
+    global live_trading_status
+    if live_trading_status['state'] != 'running':
+        return {"success": False, "message": "Not running"}
+    live_trading_status['state'] = 'stopping'
+    _add_live_log('WARN', 'Stop requested by user — will halt after current iteration')
+    return {"success": True, "message": "Stop signal sent"}
+
+
+@app.get("/api/live-trading/state")
+async def get_live_trading_state() -> Dict:
+    """Full dashboard state — called every 5 s by the UI."""
+    state = live_agent_state
+    positions_list = []
+    for sym, p in state['positions'].items():
+        positions_list.append({
+            'symbol': sym,
+            'qty': p.get('qty', 0),
+            'avg_price': p.get('avg_price', 0),
+            'current_price': p.get('current_price', 0),
+            'unrealised_pnl': p.get('unrealised_pnl', 0),
+            'pnl_pct': p.get('pnl_pct', 0),
+            'stop_price': p.get('stop_price', 0),
+            'entry_time': p.get('entry_time', ''),
+        })
+
+    pnl_hist = list(state['pnl_history'])
+
+    return {
+        "status": live_trading_status,
+        "watchlist": state['watchlist'],
+        "watchlist_scores": state.get('watchlist_scores', []),
+        "signals": state['signals'],
+        "positions": positions_list,
+        "risk": state['risk'],
+        "post_trade": state['post_trade'],
+        "pnl_history": pnl_hist,
+    }
+
+
+@app.get("/api/live-trading/logs")
+async def get_live_trading_logs(since: int = 0) -> Dict:
+    """Return logs newer than `since` (Unix ms). UI passes its last timestamp."""
+    logs = list(live_trading_logs)
+    if since:
+        logs = [l for l in logs if l['ts'] > since]
+    return {"logs": logs}
+
+
+# ── Background runner ──────────────────────────────────────────────────────────
+
+def _add_live_log(level: str, message: str):
+    live_trading_logs.append({
+        'ts': int(datetime.now().timestamp() * 1000),
+        'time': datetime.now().strftime('%H:%M:%S'),
+        'level': level,
+        'message': message,
+    })
+
+
+def _run_live_trading_background(mode: str, capital: float):
+    """
+    Runs the 6-agent pipeline in a background thread.
+    Writes state into live_agent_state so the API can serve it.
+    Uses TRADING_MODE=paper override when mode=='paper' regardless of env.
+    """
+    import time as _time
+    import os as _os
+
+    global live_trading_status, live_agent_state
+
+    try:
+        # Force paper mode in env if requested from UI
+        _os.environ['TRADING_MODE'] = mode
+        _os.environ['MAX_LIVE_CAPITAL'] = str(capital)
+
+        from src.kite_trader.trader  import KiteTrader
+        from src.kite_trader.ticker  import PositionTicker
+        from src.utils.capital_manager import CapitalRecoveryManager
+        from src.utils.broker_health import BrokerHealthMonitor
+        from src.utils.market_calendar import MarketCalendar
+        from src.agents.market_scanner import MarketScanner
+        from src.agents.signal_engine  import SignalEngine
+        from src.agents.risk_gate      import RiskGate
+        from src.agents.execution_agent import ExecutionAgent
+        from src.agents.position_monitor import PositionMonitor
+        from src.agents.post_trade_agent import PostTradeAgent
+        import pytz as _pytz
+
+        _add_live_log('INFO', f'Starting agents — mode={mode} capital=₹{capital:,.0f}')
+
+        trader = KiteTrader(enable_order_manager=(mode == 'live'), enable_rate_limiter=True)
+        if not trader.is_connected():
+            raise RuntimeError("Cannot connect to Zerodha — check KITE_ACCESS_TOKEN")
+
+        _add_live_log('INFO', '✓ Connected to Zerodha')
+
+        IST = _pytz.timezone('Asia/Kolkata')
+        MARKET_OPEN  = 9 * 60 + 15
+        SQUARE_OFF   = 15 * 60 + 20
+        MARKET_CLOSE = 15 * 60 + 30
+        CHECK_SECS   = 120
+
+        capital_manager = CapitalRecoveryManager(max_initial_capital=capital)
+        available = capital_manager.get_available_capital()
+        _add_live_log('INFO', f'Capital today: ₹{available:,.2f}')
+
+        broker_health  = BrokerHealthMonitor(trader, check_interval=120, failure_threshold=3)
+        calendar       = MarketCalendar()
+        scanner        = MarketScanner(trader, max_symbols=10, min_price=50.0, min_volume=500_000)
+        risk_gate      = RiskGate(
+            max_capital=available, max_daily_loss=available * 0.10,
+            max_position_pct=0.15, max_concurrent_positions=4,
+            stop_loss_pct=0.015, target_pct=0.025,
+            min_risk_reward=3.0, risk_per_trade_pct=0.01,
+        )
+        execution      = ExecutionAgent(trader, stop_loss_pct=0.015)
+        signal_engine  = SignalEngine(
+            trader=trader, symbols=[],
+            min_profit_margin=0.02, buy_threshold=0.20, sell_threshold=0.80,
+            risk_reward_ratio=3.0, max_position_pct=0.15,
+            stop_loss_pct=0.015, confidence_threshold=0.55,
+        )
+        pos_monitor    = PositionMonitor(
+            execution_agent=execution, risk_gate=risk_gate, trader=trader,
+            stop_loss_pct=0.015, target_pct=0.025,
+            trailing_stop_activation=0.010, trailing_stop_distance=0.008,
+            max_hold_minutes=90,
+        )
+        post_trade     = PostTradeAgent(capital_manager=capital_manager,
+                                        signal_engine=signal_engine, data_dir='data')
+
+        # Wire callbacks
+        execution.register_on_fill(lambda s, t, q, p, pnl: risk_gate.record_fill(s, t, q, p))
+        execution.register_on_fill(post_trade.on_fill)
+
+        # WebSocket ticker — re-subscribe on every fill so new positions are watched instantly
+        ticker = PositionTicker(trader, pos_monitor, execution)
+        def _ticker_fill_cb(s, t, q, p, pnl):
+            ticker.update_symbols(list(execution.all_positions().keys()))
+        execution.register_on_fill(_ticker_fill_cb)
+
+        startup_done = False
+        squared_off  = False
+        last_sync    = None
+
+        while live_trading_status['state'] == 'running':
+            now  = datetime.now(IST)
+            mins = now.hour * 60 + now.minute
+
+            if not calendar.is_trading_day(now.date()):
+                _add_live_log('INFO', f'Not a trading day ({now.strftime("%A")}). Waiting...')
+                _time.sleep(300)
+                continue
+
+            if mins < MARKET_OPEN:
+                wait = MARKET_OPEN - mins
+                _add_live_log('INFO', f'Market opens in {wait} min')
+                _time.sleep(min(wait * 60, 60))
+                continue
+
+            if mins > MARKET_CLOSE:
+                _add_live_log('INFO', 'Market closed — ending session')
+                break
+
+            # ---- Startup ----
+            if not startup_done:
+                _add_live_log('INFO', '🚀 Market open — scanning watchlist...')
+                symbols = scanner.scan()
+                live_agent_state['watchlist'] = symbols
+                live_agent_state['watchlist_scores'] = [
+                    {k: round(v, 4) if isinstance(v, float) else v
+                     for k, v in s.items()
+                     if k in ('symbol','composite_score','vol_surge',
+                              'gap_pct','day_range_pct','price_momentum','atr_pct')}
+                    for s in scanner.get_last_scores()
+                ]
+                signal_engine.symbols = symbols
+                signal_engine.base_strategy.symbols = symbols
+                _add_live_log('INFO', f'Watchlist: {", ".join(symbols)}')
+
+                _add_live_log('INFO', 'Seeding historical candle data...')
+                signal_engine.seed_historical_data(days=5)
+
+                execution.sync_from_broker()
+                risk_gate.reset_daily(available)
+                signal_engine.reset_daily(available)
+                pos_monitor.reset_daily()
+                post_trade.start_day(available)
+
+                # Regime + VIX — scale stops/sizes for today's conditions
+                cond = scanner.market_conditions()
+                if cond['skip_day']:
+                    _add_live_log('WARN',
+                        f"⚠️ Choppy day (Nifty range {cond['nifty_range_pct']:.2%}) "
+                        f"— position sizes halved")
+                risk_gate.stop_loss_pct      = round(risk_gate.stop_loss_pct      * cond['stop_loss_mult'], 4)
+                risk_gate.risk_per_trade_pct = round(risk_gate.risk_per_trade_pct * cond['size_mult'],      4)
+                _add_live_log('INFO',
+                    f"✓ regime={cond['regime']} vix={cond['vix']} "
+                    f"stop={risk_gate.stop_loss_pct:.3f} size_pct={risk_gate.risk_per_trade_pct:.3f}")
+
+                ticker.start()
+                startup_done = True
+                _add_live_log('INFO', '✓ Startup complete')
+
+            # ---- Square-off ----
+            if mins >= SQUARE_OFF and not squared_off:
+                _add_live_log('WARN', '⏰ 3:20 PM — squaring off all positions')
+                execution.square_off_all(reason='EOD square-off')
+                squared_off = True
+                _time.sleep(CHECK_SECS)
+                continue
+
+            if mins >= SQUARE_OFF:
+                _time.sleep(60)
+                continue
+
+            # ---- Health check ----
+            health = broker_health.check_health()
+            if health['should_halt']:
+                _add_live_log('ERROR', f'🚨 Broker unreachable — halting')
+                risk_gate.halted = True
+                break
+            if not health['is_healthy']:
+                _add_live_log('WARN', '⚠️ Broker health failed — skipping iteration')
+                _time.sleep(CHECK_SECS)
+                continue
+
+            # ---- Iteration ----
+            live_trading_status['iteration'] += 1
+            live_trading_status['last_update'] = now.isoformat()
+            iter_n = live_trading_status['iteration']
+            _add_live_log('INFO', f'── Iteration {iter_n} {now.strftime("%H:%M:%S")} ──')
+
+            signals = signal_engine.run_iteration()
+            live_agent_state['signals'] = {k: v for k, v in signals.items() if v}
+
+            exits = pos_monitor.monitor(signal_overrides=signals)
+            for sym, reason in exits.items():
+                _add_live_log('INFO', f'EXIT {sym}: {reason}')
+
+            if not risk_gate.halted:
+                for symbol, signal in signals.items():
+                    if execution.has_position(symbol):
+                        continue
+                    if signal not in ('BUY', 'SELL'):
+                        continue
+                    q = trader.get_quote([symbol])
+                    qd = q.get(f'NSE:{symbol}', {})
+                    ltp      = qd.get('last_price', 0)
+                    day_high = qd.get('ohlc', {}).get('high', ltp)
+                    day_low  = qd.get('ohlc', {}).get('low', ltp)
+
+                    if signal == 'BUY':
+                        decision = risk_gate.evaluate(symbol, 'BUY', ltp, day_high, day_low)
+                        if decision.approved:
+                            _add_live_log('INFO',
+                                f'BUY {symbol} {decision.quantity}@₹{decision.limit_price:.2f} | R/R ✓')
+                            execution.execute(symbol, decision, 'BUY')
+                        else:
+                            _add_live_log('DEBUG', f'BLOCKED BUY {symbol}: {decision.reason}')
+
+                    elif signal == 'SELL':
+                        decision = risk_gate.evaluate_short(symbol, ltp, day_high, day_low)
+                        if decision.approved:
+                            _add_live_log('INFO',
+                                f'SHORT {symbol} {decision.quantity}@₹{decision.limit_price:.2f} | R/R ✓')
+                            execution.execute(symbol, decision, 'SELL')
+                        else:
+                            _add_live_log('DEBUG', f'BLOCKED SHORT {symbol}: {decision.reason}')
+
+            # ---- Sync positions into shared state ----
+            open_pos = execution.all_positions()
+            pos_snapshot = {}
+            if open_pos:
+                syms_open = list(open_pos.keys())
+                try:
+                    qt = trader.get_quote(syms_open)
+                    for sym, pos in open_pos.items():
+                        ltp = qt.get(f'NSE:{sym}', {}).get('last_price', pos.avg_price)
+                        pnl = pos.unrealised_pnl(ltp)
+                        pos_snapshot[sym] = {
+                            'qty': pos.quantity,
+                            'avg_price': round(pos.avg_price, 2),
+                            'current_price': round(ltp, 2),
+                            'unrealised_pnl': round(pnl, 2),
+                            'pnl_pct': round(pos.pnl_pct(ltp) * 100, 2),
+                            'stop_price': round(pos.stop_price, 2),
+                            'entry_time': pos.entry_time.strftime('%H:%M:%S'),
+                        }
+                except Exception:
+                    pass
+            live_agent_state['positions'] = pos_snapshot
+
+            # ---- Sync risk + post-trade state ----
+            rs = risk_gate.status()
+            live_agent_state['risk'] = rs
+            live_agent_state['post_trade'] = post_trade.intraday_status()
+            live_agent_state['pnl_history'].append({
+                'time': now.strftime('%H:%M'),
+                'pnl': round(rs['daily_pnl'], 2),
+            })
+
+            # ---- Periodic broker reconcile ----
+            if last_sync is None or (datetime.now(IST) - last_sync).total_seconds() >= 600:
+                execution.sync_from_broker()
+                last_sync = datetime.now(IST)
+
+            # ---- Periodic model save ----
+            if iter_n % 5 == 0:
+                signal_engine.save_models()
+
+            _time.sleep(CHECK_SECS)
+
+        # End of session
+        _add_live_log('INFO', 'Session ending — recording EOD...')
+        ticker.stop()
+        if execution.all_positions():
+            execution.square_off_all('Session ended')
+            _time.sleep(3)
+        post_trade.end_day(used_capital=risk_gate.status()['used_capital'])
+        signal_engine.save_models()
+        _add_live_log('INFO', '✅ Session complete')
+
+    except Exception as e:
+        import traceback
+        _add_live_log('ERROR', f'Fatal: {e}')
+        _add_live_log('ERROR', traceback.format_exc())
+        live_trading_status['state'] = 'error'
+        live_trading_status['error'] = str(e)
+        return
+
+    live_trading_status['state'] = 'stopped'
+
+
+# ── ML API routes ─────────────────────────────────────────────────────────────
+
+@app.get("/api/model/status")
+async def get_model_status() -> Dict:
+    """Return current model metadata (or idle state if never trained)."""
+    import os as _os
+    try:
+        from src.ml.model_trainer import META_PATH, MODEL_PATH
+        if _os.path.exists(META_PATH):
+            import json as _json
+            with open(META_PATH) as f:
+                meta = _json.load(f)
+            return {"success": True, "trained": True, "metadata": meta,
+                    "model_size_kb": round(_os.path.getsize(MODEL_PATH) / 1024, 1)}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+    return {"success": True, "trained": False, "metadata": None}
+
+
+@app.post("/api/train/run")
+async def start_ml_training(request: Request) -> Dict:
+    """Start ModelTrainer in a background thread."""
+    global ml_train_status, ml_train_thread
+    if ml_train_status['state'] == 'running':
+        return {"success": False, "message": "Training already running"}
+    try:
+        body = await request.json()
+        symbols = body.get('symbols', [
+            'RELIANCE','TCS','INFY','HDFCBANK','ICICIBANK',
+            'SBIN','AXISBANK','WIPRO','LT','BAJFINANCE',
+        ])
+        lookback_days = int(body.get('lookback_days', 180))
+        n_folds = int(body.get('n_folds', 5))
+
+        ml_train_status.update({'state': 'running', 'progress': 0,
+                                 'step': 'Starting...', 'error': None, 'metadata': None})
+        ml_train_thread = threading.Thread(
+            target=_run_ml_training,
+            args=(symbols, lookback_days, n_folds),
+            daemon=True,
+        )
+        ml_train_thread.start()
+        return {"success": True, "message": f"Training started for {len(symbols)} symbols"}
+    except Exception as e:
+        ml_train_status['state'] = 'error'
+        ml_train_status['error'] = str(e)
+        return {"success": False, "message": str(e)}
+
+
+@app.get("/api/train/status")
+async def get_ml_train_status() -> Dict:
+    """Poll training progress (0-100) and current step."""
+    return {"success": True, "status": ml_train_status}
+
+
+@app.post("/api/backtest/run")
+async def run_backtest(request: Request) -> Dict:
+    """
+    Run Backtester.parameter_sweep for a single symbol and return the summary.
+    No background thread — fast enough to await (typically <5 s per symbol).
+    """
+    try:
+        body = await request.json()
+        symbol = body.get('symbol', '')
+        lookback_days = int(body.get('lookback_days', 90))
+        if not symbol:
+            return {"success": False, "message": "symbol required"}
+
+        trader = get_trader()
+        if not trader:
+            return {"success": False, "message": "Cannot connect to Zerodha"}
+
+        from datetime import timedelta as _td
+        from src.ml.backtester import Backtester
+        to_date   = datetime.now()
+        from_date = to_date - _td(days=lookback_days)
+        candles   = trader.get_historical_data(
+            symbol=symbol, from_date=from_date,
+            to_date=to_date, interval='5minute',
+        )
+        if len(candles) < 200:
+            return {"success": False,
+                    "message": f"Only {len(candles)} candles — need ≥200"}
+
+        best, _ = Backtester.parameter_sweep(candles, symbol)
+        return {
+            "success": True,
+            "symbol": symbol,
+            "candles": len(candles),
+            "summary": best.summary(),
+            "metrics": {
+                "net_pnl":       round(best.net_pnl, 2),
+                "win_rate":      round(best.win_rate, 4),
+                "total_trades":  best.total_trades,
+                "sharpe":        round(best.sharpe, 3),
+                "expectancy":    round(best.expectancy, 2),
+                "best_params":   best.params,
+            }
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+def _run_ml_training(symbols: list, lookback_days: int, n_folds: int):
+    """Background thread: runs ModelTrainer.run() and writes progress into ml_train_status."""
+    global ml_train_status
+    try:
+        trader = get_trader()
+        if not trader:
+            ml_train_status.update({'state': 'error', 'error': 'Cannot connect to Zerodha'})
+            return
+
+        def _progress(pct: int, msg: str):
+            ml_train_status['progress'] = pct
+            ml_train_status['step'] = msg
+
+        from src.ml.model_trainer import ModelTrainer, invalidate_model_cache
+        trainer = ModelTrainer(trader=trader, progress_cb=_progress)
+        meta = trainer.run(symbols=symbols, lookback_days=lookback_days, n_cv_folds=n_folds)
+        invalidate_model_cache()   # force reload on next inference
+        ml_train_status.update({
+            'state': 'completed', 'progress': 100,
+            'step': f'Done. CV accuracy={meta["cv_accuracy_mean"]:.1%}',
+            'metadata': meta,
+        })
+    except Exception as e:
+        import traceback
+        ml_train_status.update({'state': 'error', 'error': str(e) + '\n' + traceback.format_exc()})
 
 
 if __name__ == "__main__":

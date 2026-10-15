@@ -1,0 +1,36 @@
+name: Trading Control
+
+# Stop a running live-trade job gracefully: positions are squared off and the
+# day is recorded before the job exits. (Do not use "Cancel workflow" for this:
+# it kills the job without squaring off.)
+#
+# To START: Actions -> Trading Automation -> Run workflow -> live_trade.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "stop = square off and end today's session"
+        required: true
+        default: "stop"
+        type: choice
+        options:
+          - stop
+
+permissions:
+  contents: write
+
+jobs:
+  stop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create stop flag (trading-control branch)
+        run: |
+          git config user.name "trading-bot"
+          git config user.email "trading-bot@users.noreply.github.com"
+          # The running job polls for this branch every ~20s.
+          git push --force origin HEAD:refs/heads/trading-control
+          echo "Stop requested. The live job will square off and exit within about a minute."

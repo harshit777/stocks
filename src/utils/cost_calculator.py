@@ -116,10 +116,9 @@ class CostCalculator:
             Stamp duty amount
         """
         if transaction_type == "BUY":
-            # 0.015% on buy side only, capped at ₹1500 per crore
-            stamp = trade_value * self.stamp_duty
-            max_stamp = (trade_value / 10000000) * 1500  # ₹1500 per crore
-            return min(stamp, max_stamp)
+            # 0.015% on buy side only
+            # ponytail: cap of ₹1500/crore is algebraically identical to 0.015% — min() never fires; removed.
+            return trade_value * self.stamp_duty
         return 0.0
     
     def calculate_gst(self, taxable_amount: float) -> float:

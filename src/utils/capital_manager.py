@@ -171,14 +171,11 @@ class CapitalRecoveryManager:
         if not updated:
             self.history['daily_records'].append(day_record)
         
-        # Update summary statistics
+        # Update summary statistics — always recompute both counters from records
         self.history['total_pnl'] = sum(r['daily_pnl'] for r in self.history['daily_records'])
         self.history['total_trades'] += trades_count
-        
-        if daily_pnl > 0:
-            self.history['winning_days'] = sum(1 for r in self.history['daily_records'] if r['daily_pnl'] > 0)
-        elif daily_pnl < 0:
-            self.history['losing_days'] = sum(1 for r in self.history['daily_records'] if r['daily_pnl'] < 0)
+        self.history['winning_days'] = sum(1 for r in self.history['daily_records'] if r['daily_pnl'] > 0)
+        self.history['losing_days'] = sum(1 for r in self.history['daily_records'] if r['daily_pnl'] < 0)
         
         # Save to file
         self._save_history()

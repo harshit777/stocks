@@ -33,6 +33,7 @@ class KiteTrader:
             self.logger.warning("KITE_API_KEY not found in environment variables")
         
         self.kite = None
+        self._instrument_cache: Dict[str, int] = {}  # symbol -> instrument_token
         self._initialize_connection()
         
         # Initialize production components
@@ -133,11 +134,29 @@ class KiteTrader:
             self.logger.error(f"Failed to fetch LTP: {str(e)}")
             return {}
     
-    def get_historical_data(self, symbol: str, from_date: datetime, 
+    def _get_instrument_token(self, symbol: str) -> Optional[int]:
+        """Return instrument token for symbol, using a session-level cache."""
+        if symbol in self._instrument_cache:
+            return self._instrument_cache[symbol]
+
+        try:
+            instruments = self.kite.instruments("NSE")
+            for inst in instruments:
+                self._instrument_cache[inst['tradingsymbol']] = inst['instrument_token']
+        except Exception as e:
+            self.logger.error(f"Failed to fetch instrument list: {e}")
+            return None
+
+        token = self._instrument_cache.get(symbol)
+        if token is None:
+            self.logger.error(f"Instrument token not found for {symbol}")
+        return token
+
+    def get_historical_data(self, symbol: str, from_date: datetime,
                            to_date: datetime, interval: str = "day") -> List[Dict]:
         """
         Get historical data for a symbol.
-        
+
         Args:
             symbol: Trading symbol
             from_date: Start date
@@ -145,18 +164,8 @@ class KiteTrader:
             interval: Candle interval (minute, day, 3minute, 5minute, 10minute, etc.)
         """
         try:
-            # You'll need to get instrument token from instruments list
-            # This is a simplified version
-            instruments = self.kite.instruments("NSE")
-            instrument_token = None
-            
-            for inst in instruments:
-                if inst['tradingsymbol'] == symbol:
-                    instrument_token = inst['instrument_token']
-                    break
-            
+            instrument_token = self._get_instrument_token(symbol)
             if not instrument_token:
-                self.logger.error(f"Instrument token not found for {symbol}")
                 return []
             
             historical_data = self.kite.historical_data(

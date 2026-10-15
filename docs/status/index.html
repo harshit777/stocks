@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trading Status</title>
+<style>
+  body { margin: 0; font: 14px/1.5 -apple-system, "Segoe UI", system-ui, sans-serif; background: #0f1419; color: #e6e8eb; }
+  main { max-width: 900px; margin: 0 auto; padding: 20px; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .muted { color: #8b949e; font-size: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 16px 0; }
+  .card { background: #161b22; border: 1px solid #262c36; border-radius: 6px; padding: 10px 12px; }
+  .card .label { color: #8b949e; font-size: 12px; }
+  .card .value { font-size: 20px; font-weight: 600; }
+  .pos { color: #3fb950; } .neg { color: #f85149; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; background: #262c36; }
+  .badge.running { background: #1f6f3d; } .badge.stopped, .badge.ended { background: #5a3a1a; }
+  .badge.stale { background: #7d2a2a; }
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid #262c36; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: #8b949e; font-weight: 500; font-size: 12px; }
+  pre { background: #161b22; border: 1px solid #262c36; border-radius: 6px; padding: 10px; max-height: 320px; overflow: auto; font-size: 12px; white-space: pre-wrap; }
+  h2 { font-size: 14px; margin: 20px 0 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Trading Status <span id="state" class="badge">loading</span></h1>
+  <div class="muted">Read-only. Start and stop from the GitHub Actions tab. Updated <span id="updated">-</span> (<span id="age">-</span>)</div>
+
+  <div class="grid">
+    <div class="card"><div class="label">Day P&amp;L</div><div class="value" id="pnl">-</div></div>
+    <div class="card"><div class="label">Capital available</div><div class="value" id="avail">-</div></div>
+    <div class="card"><div class="label">Capital used</div><div class="value" id="used">-</div></div>
+    <div class="card"><div class="label">Open positions</div><div class="value" id="npos">-</div></div>
+    <div class="card"><div class="label">Trades (W/L)</div><div class="value" id="trades">-</div></div>
+    <div class="card"><div class="label">Iteration</div><div class="value" id="iter">-</div></div>
+  </div>
+
+  <div id="halt" class="card neg" style="display:none"></div>
+
+  <h2>Positions</h2>
+  <table>
+    <thead><tr><th>Symbol</th><th>Qty</th><th>Avg</th><th>LTP</th><th>Stop</th><th>P&amp;L</th></tr></thead>
+    <tbody id="positions"></tbody>
+  </table>
+
+  <h2>Watchlist</h2>
+  <div id="watchlist" class="muted">-</div>
+
+  <h2>Recent log</h2>
+  <pre id="log">-</pre>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const money = v => (v < 0 ? "-" : "") + "\u20b9" + Math.abs(Number(v || 0)).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+function pnlClass(v) { return v > 0 ? "pos" : v < 0 ? "neg" : ""; }
+
+async function refresh() {
+  let d;
+  try {
+    const r = await fetch("status.json?t=" + Date.now(), {cache: "no-store"});
+    if (!r.ok) throw new Error(r.status);
+    d = await r.json();
+  } catch (e) {
+    $("state").textContent = "no data";
+    return;
+  }
+  const risk = d.risk || {}, pt = d.post_trade || {};
+  const ageMin = Math.round((Date.now() - new Date(d.updated_at).getTime()) / 60000);
+  const stale = d.state === "running" && ageMin > 15;
+
+  $("state").textContent = stale ? "stale" : d.state;
+  $("state").className = "badge " + (stale ? "stale" : d.state);
+  $("updated").textContent = new Date(d.updated_at).toLocaleString();
+  $("age").textContent = ageMin + " min ago";
+
+  const pnl = pt.daily_pnl !== undefined ? pt.daily_pnl : risk.daily_pnl;
+  $("pnl").textContent = money(pnl); $("pnl").className = "value " + pnlClass(pnl);
+  $("avail").textContent = money(risk.available_capital);
+  $("used").textContent = money(risk.used_capital);
+  $("npos").textContent = (d.positions || []).length;
+  $("trades").textContent = (pt.daily_trades || 0) + " (" + (pt.daily_wins || 0) + "/" + (pt.daily_losses || 0) + ")";
+  $("iter").textContent = d.iteration;
+
+  $("halt").style.display = risk.halted ? "block" : "none";
+  $("halt").textContent = risk.halted ? "HALTED: " + (risk.halt_reason || "") : "";
+
+  const tb = $("positions"); tb.textContent = "";
+  for (const p of d.positions || []) {
+    const tr = document.createElement("tr");
+    [p.symbol, p.qty, p.avg_price, p.ltp, p.stop_price, money(p.pnl)].forEach((v, i) => {
+      const td = document.createElement("td"); td.textContent = v;
+      if (i === 5) td.className = pnlClass(p.pnl);
+      tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  }
+  $("watchlist").textContent = (d.watchlist || []).join(", ") || "-";
+  const lg = $("log"); lg.textContent = (d.log || []).join("\n") || "-"; lg.scrollTop = lg.scrollHeight;
+}
+refresh(); setInterval(refresh, 60000);
+</script>
+</body>
+</html>

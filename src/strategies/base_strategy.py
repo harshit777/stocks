@@ -69,12 +69,12 @@ class BaseStrategy(ABC):
                 self.logger.warning(f"Invalid position size for {symbol}: {quantity}")
                 return
             
-            # Place the order
+            # Place the order (LIMIT is safer; wrapper/trader calculates price)
             order_id = self.trader.place_order(
                 symbol=symbol,
                 transaction_type=signal,
                 quantity=quantity,
-                order_type="MARKET",
+                order_type="LIMIT",
                 product="MIS"  # Intraday
             )
             
@@ -101,11 +101,19 @@ class BaseStrategy(ABC):
         self.positions[symbol]['timestamp'] = datetime.now()
     
     def has_position(self, symbol: str) -> bool:
-        """Check if we have an open position in the symbol."""
+        """Check if we have an open position in the symbol.
+
+        Delegates to trader.positions when available (e.g. LiveTradingWrapper)
+        so the live position book is the single source of truth.
+        """
+        if hasattr(self.trader, 'positions') and isinstance(self.trader.positions, dict):
+            return symbol in self.trader.positions and self.trader.positions[symbol].get('quantity', 0) != 0
         return symbol in self.positions and self.positions[symbol]['quantity'] != 0
-    
+
     def get_position_quantity(self, symbol: str) -> int:
         """Get current position quantity for a symbol."""
+        if hasattr(self.trader, 'positions') and isinstance(self.trader.positions, dict):
+            return self.trader.positions.get(symbol, {}).get('quantity', 0)
         if symbol in self.positions:
             return self.positions[symbol]['quantity']
         return 0
@@ -211,37 +219,37 @@ class BaseStrategy(ABC):
     def validate_symbols(self, symbols_to_check: list) -> list:
         """
         Validate symbols by checking if they can get quote data.
-        
+        Uses a single batch API call instead of one call per symbol.
+
         Args:
             symbols_to_check: List of symbols to validate
-        
+
         Returns:
             List of valid symbols that successfully returned quote data
         """
+        self.logger.info(f"Validating {len(symbols_to_check)} symbols...")
+
+        try:
+            quotes = self.trader.get_quote(symbols_to_check)
+        except Exception as e:
+            self.logger.error(f"Batch quote fetch failed during validation: {e}")
+            return []
+
         valid_symbols = []
         invalid_symbols = []
-        
-        self.logger.info(f"Validating {len(symbols_to_check)} symbols...")
-        
+
         for symbol in symbols_to_check:
-            try:
-                quote = self.trader.get_quote([symbol])
-                symbol_key = f"NSE:{symbol}"
-                
-                if quote and (symbol_key in quote or f"BSE:{symbol}" in quote):
-                    valid_symbols.append(symbol)
-                else:
-                    invalid_symbols.append(symbol)
-            except Exception as e:
-                self.logger.debug(f"Failed to validate {symbol}: {e}")
+            if quotes and (f"NSE:{symbol}" in quotes or f"BSE:{symbol}" in quotes):
+                valid_symbols.append(symbol)
+            else:
                 invalid_symbols.append(symbol)
-        
+
         if invalid_symbols:
             self.logger.warning(
                 f"Found {len(invalid_symbols)} symbols without quote data: "
                 f"{', '.join(invalid_symbols)}"
             )
-        
+
         self.logger.info(f"Validated {len(valid_symbols)}/{len(symbols_to_check)} symbols")
         return valid_symbols
     
