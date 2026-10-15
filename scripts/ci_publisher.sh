@@ -25,6 +25,13 @@ publish() {
   if [ -f data/paper/SUMMARY.md ]; then
     cp data/paper/SUMMARY.md "$work/summary.md"
     [ -d data/paper/reports ] && cp -R data/paper/reports "$work/reports"
+    # One compact list of daily results (without per-trade rows) for the page
+    python3 - "$work/reports.json" <<'PY' 2>/dev/null || true
+import json, sys
+from src.utils.paper_report import load_reports
+rows = [{k: v for k, v in r.items() if k != 'round_trips'} for r in load_reports()]
+json.dump(rows, open(sys.argv[1], 'w'))
+PY
   fi
   touch "$work/.nojekyll"
   (

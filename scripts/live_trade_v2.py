@@ -67,11 +67,20 @@ logger = logging.getLogger('main')
 
 # Keep the last log lines in memory so they can be published in status.json
 _log_tail: deque = deque(maxlen=60)
+# (time, pnl) points for the P&L curve on the status page
+_pnl_history: deque = deque(maxlen=400)
 
 
 class _TailHandler(logging.Handler):
     def emit(self, record):
-        _log_tail.append(f"{datetime.now().strftime('%H:%M:%S')} {record.levelname} {record.getMessage()}")
+        msg = record.getMessage().strip()
+        if not msg:
+            return
+        _log_tail.append({
+            'time': datetime.now().strftime('%H:%M:%S'),
+            'level': 'WARN' if record.levelname == 'WARNING' else record.levelname,
+            'message': msg.replace('\n', ' ')[:300],
+        })
 
 
 logging.getLogger().addHandler(_TailHandler())
@@ -98,8 +107,25 @@ def _sleep(seconds: float):
         time.sleep(min(5, max(0, end - time.time())))
 
 
+def _ml_block(signal_engine):
+    """Offline-model metadata plus online-model progress, for the ML panel."""
+    ml = {}
+    try:
+        with open('data/ml/metadata.json') as f:
+            meta = json.load(f)
+        ml = {k: meta.get(k) for k in ('cv_accuracy_mean', 'cv_auc_mean',
+                                       'n_samples', 'trained_at', 'feature_importances')}
+    except Exception:
+        pass
+    try:
+        ml['online_updates'] = signal_engine.get_ml_status().get('online_updates')
+    except Exception:
+        pass
+    return ml
+
+
 def _write_status(state, iteration, risk_gate, post_trade, execution, trader,
-                  signals, watchlist):
+                  signals, watchlist, scanner=None, signal_engine=None):
     """Dump a snapshot for the read-only status page. Never raises."""
     try:
         positions = []
@@ -114,20 +140,37 @@ def _write_status(state, iteration, risk_gate, post_trade, execution, trader,
             ltp = quotes.get(f'NSE:{sym}', {}).get('last_price', pos.avg_price)
             positions.append({
                 'symbol': sym, 'qty': pos.quantity,
-                'avg_price': round(pos.avg_price, 2), 'ltp': round(ltp, 2),
-                'pnl': round(pos.unrealised_pnl(ltp), 2),
+                'avg_price': round(pos.avg_price, 2),
+                'current_price': round(ltp, 2),
+                'unrealised_pnl': round(pos.unrealised_pnl(ltp), 2),
+                'pnl_pct': round(pos.pnl_pct(ltp) * 100, 2),
                 'stop_price': round(pos.stop_price, 2),
+                'entry_time': pos.entry_time.strftime('%H:%M:%S'),
             })
+        post = post_trade.intraday_status()
+        if state == 'running':
+            _pnl_history.append({'time': datetime.now(IST).strftime('%H:%M'),
+                                 'pnl': round(post['daily_pnl'], 2)})
+        scores = []
+        if scanner is not None:
+            keys = ('symbol', 'composite_score', 'vol_surge', 'gap_pct',
+                    'day_range_pct', 'price_momentum', 'atr_pct')
+            scores = [{k: round(v, 4) if isinstance(v, float) else v
+                       for k, v in s.items() if k in keys}
+                      for s in scanner.get_last_scores()]
         snapshot = {
             'state': state,
             'mode': MODE,
             'updated_at': datetime.now(IST).isoformat(),
             'iteration': iteration,
             'risk': risk_gate.status(),
-            'post_trade': post_trade.intraday_status(),
+            'post_trade': post,
             'positions': positions,
             'watchlist': list(watchlist or []),
+            'watchlist_scores': scores,
             'signals': {k: v for k, v in (signals or {}).items() if v},
+            'pnl_history': list(_pnl_history),
+            'ml': _ml_block(signal_engine),
             'log': list(_log_tail),
         }
         os.makedirs(os.path.dirname(STATUS_FILE), exist_ok=True)
@@ -318,7 +361,8 @@ def main():
                 wait = MARKET_OPEN - mins
                 logger.info(f"Market opens in {wait} min. Sleeping...")
                 _write_status('waiting', iteration, risk_gate, post_trade,
-                              execution, trader, signals, signal_engine.symbols)
+                              execution, trader, signals, signal_engine.symbols,
+                              scanner, signal_engine)
                 _sleep(min(wait * 60, 60))
                 continue
 
@@ -453,7 +497,8 @@ def main():
                 signal_engine.save_models()
 
             _write_status('running', iteration, risk_gate, post_trade,
-                          execution, trader, signals, signal_engine.symbols)
+                          execution, trader, signals, signal_engine.symbols,
+                          scanner, signal_engine)
             _sleep(CHECK_INTERVAL)
 
     except KeyboardInterrupt:
@@ -486,7 +531,7 @@ def main():
             logger.error(f"Final cleanup error: {e}")
         _write_status('stopped' if _stop_requested() else 'ended', iteration,
                       risk_gate, post_trade, execution, trader, signals,
-                      signal_engine.symbols)
+                      signal_engine.symbols, scanner, signal_engine)
 
 
 # ------------------------------------------------------------------ #

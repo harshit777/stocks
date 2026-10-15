@@ -209,6 +209,52 @@ def test_post_trade_agent_snapshots_entry_on_buy():
     print('  ✓ BUY fill triggers the entry snapshot, SELL does not')
 
 
+def test_status_json_has_dashboard_fields():
+    """status.json carries everything docs/status/index.html renders."""
+    code = r'''
+import sys, json, datetime, importlib.util as u
+sys.path.insert(0, %r)
+s = u.spec_from_file_location('v2', %r); m = u.module_from_spec(s); s.loader.exec_module(m)
+from src.agents.execution_agent import Position
+
+class Exec:
+    def all_positions(self):
+        return {'AAA': Position('AAA', 5, 100.0, 98.5)}
+class Trader:
+    def get_quote(self, syms): return {'NSE:AAA': {'last_price': 102.0}}
+class Risk:
+    def status(self): return {'available_capital': 500.0, 'used_capital': 500.0, 'halted': False}
+class Post:
+    def intraday_status(self):
+        return {'daily_pnl': 12.5, 'daily_trades': 1, 'daily_wins': 1, 'daily_losses': 0, 'win_rate': 100.0}
+class Scanner:
+    def get_last_scores(self):
+        return [{'symbol': 'AAA', 'composite_score': 0.61234567, 'vol_surge': 2.0, 'gap_pct': 0.01,
+                 'day_range_pct': 0.02, 'secret_internal': 1}]
+class Eng:
+    def get_ml_status(self): return {'online_updates': 7}
+
+import logging
+logging.getLogger('t').warning('careful')
+m._write_status('running', 3, Risk(), Post(), Exec(), Trader(), {'AAA': 'BUY', 'BBB': None},
+                ['AAA', 'BBB'], Scanner(), Eng())
+d = json.load(open('data/status.json'))
+p = d['positions'][0]
+assert p['current_price'] == 102.0 and p['unrealised_pnl'] == 10.0 and p['pnl_pct'] == 2.0, p
+assert {'qty', 'avg_price', 'stop_price', 'entry_time'} <= set(p), p
+assert d['watchlist_scores'][0]['composite_score'] == 0.6123 and 'secret_internal' not in d['watchlist_scores'][0]
+assert d['pnl_history'][-1]['pnl'] == 12.5, d['pnl_history']
+assert d['signals'] == {'AAA': 'BUY'}
+assert d['ml']['online_updates'] == 7
+assert any(l['level'] == 'WARN' and l['message'] == 'careful' for l in d['log']), d['log']
+print('ok')
+''' % (ROOT, os.path.join(ROOT, 'scripts', 'live_trade_v2.py'))
+    p = subprocess.run([sys.executable, '-c', code], cwd=tempfile.mkdtemp(),
+                       capture_output=True, text=True, timeout=60)
+    assert p.stdout.strip().endswith('ok'), (p.stdout[-300:], p.stderr[-600:])
+    print('  ✓ status.json has positions, scores, P&L history, ML block and structured log')
+
+
 if __name__ == '__main__':
     tests = [
         test_paper_broker_never_places_real_orders,
@@ -221,6 +267,7 @@ if __name__ == '__main__':
         test_online_model_learns_from_entry_features_and_net_label,
         test_online_model_skips_positions_it_did_not_open,
         test_post_trade_agent_snapshots_entry_on_buy,
+        test_status_json_has_dashboard_fields,
     ]
     passed = failed = 0
     for t in tests:
