@@ -90,6 +90,9 @@ class SignalEngine:
         # ML layer — replaces heuristic prediction score
         self._feature_engines: Dict[str, FeatureEngine] = {}   # symbol → FeatureEngine
         self._online_model = OnlineModel()
+        # symbol → (feature vector at entry, entry price) for the open position,
+        # so the online model learns from what the signal saw when it bought.
+        self._entry_features: Dict[str, Tuple[np.ndarray, float]] = {}
 
         # Psychology guard
         self.psychology_guard = TradingPsychologyGuard(
@@ -274,20 +277,39 @@ class SignalEngine:
                 signals[symbol] = None
         return signals
 
+    def record_entry(self, symbol: str, entry_price: float):
+        """Remember the feature vector at the moment a position is opened."""
+        fe = self._feature_engines.get(symbol)
+        vec = fe.latest_vector() if fe is not None else None
+        if vec is not None:
+            self._entry_features[symbol] = (vec.copy(), entry_price)
+
     def record_trade_outcome(self, symbol: str, signal: str,
                              entry_price: float, quantity: int,
                              pnl: Optional[float] = None):
-        """Propagate trade result into psychology guard AND online ML model."""
+        """
+        Propagate trade result into psychology guard AND online ML model.
+
+        For a closing SELL, `entry_price` is the EXIT fill price (the argument
+        name is historical) and `pnl` is the gross profit of the round trip.
+        """
         self.psychology_guard.record_trade(symbol, signal, entry_price, quantity, pnl)
 
-        # Online model update — only on SELL (closed trade)
-        if signal == 'SELL' and pnl is not None and symbol in self._feature_engines:
-            feature_vec = self._feature_engines[symbol].latest_vector()
-            if feature_vec is not None:
-                label = 1 if pnl > 0 else 0
-                self._online_model.update(feature_vec, label)
-                if self._online_model.n_updates % 5 == 0:
-                    self._online_model.save()
+        # Online model update — only on a closing SELL, using the features seen at
+        # ENTRY and the same label the offline model uses: profitable after costs.
+        if signal == 'SELL' and pnl is not None:
+            entry = self._entry_features.pop(symbol, None)
+            if entry is None:
+                return   # position not opened by this engine (e.g. synced): nothing to learn from
+            feature_vec, buy_price = entry
+            from ..utils.cost_calculator import get_cost_calculator
+            calc = get_cost_calculator()
+            costs = (calc.calculate_total_cost(buy_price, quantity, 'BUY')['total_cost']
+                     + calc.calculate_total_cost(entry_price, quantity, 'SELL')['total_cost'])
+            label = 1 if (pnl - costs) > 0 else 0
+            self._online_model.update(feature_vec, label)
+            if self._online_model.n_updates % 5 == 0:
+                self._online_model.save()
 
     def reset_daily(self, starting_capital: float):
         """Reset all intraday state at market open."""

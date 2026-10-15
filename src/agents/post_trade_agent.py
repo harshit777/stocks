@@ -86,6 +86,13 @@ class PostTradeAgent:
         }
         self.trade_log.append(record)
 
+        if transaction_type == 'BUY':
+            # Snapshot the indicators at entry so the online model learns from them
+            try:
+                self.signal_engine.record_entry(symbol, fill_price)
+            except Exception as e:
+                self.logger.debug(f"PostTradeAgent: record_entry error: {e}")
+
         if transaction_type == 'SELL' and pnl is not None:
             self.daily_pnl += pnl
             self.daily_trades += 1

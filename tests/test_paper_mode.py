@@ -13,11 +13,19 @@ import subprocess
 import sys
 import tempfile
 
+import numpy as np
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from src.kite_trader.paper_broker import PaperBroker
 from src.utils import paper_report
+
+
+def _candle(i: int) -> dict:
+    base = 100 + i * 0.1 + (i % 7) * 0.3
+    return {'open': base, 'high': base + 1.5, 'low': base - 1.0,
+            'close': base + (0.4 if i % 2 else -0.4), 'volume': 100_000 + i * 700}
 
 
 class _FakeKite:
@@ -133,6 +141,74 @@ def test_unknown_mode_falls_back_to_paper():
     print("  ✓ TRADING_MODE='LIVE ' is treated as paper")
 
 
+def _engine_with_spy():
+    """SignalEngine with a recording OnlineModel; no network, no disk writes."""
+    from src.agents.signal_engine import SignalEngine
+    from src.ml.feature_engine import FeatureEngine
+
+    class _Spy:
+        n_updates = 1
+        def __init__(self): self.calls = []
+        def update(self, vec, label): self.calls.append((vec.copy(), label))
+        def save(self): pass
+
+    se = SignalEngine(trader=_FakeTrader(), symbols=['A'])
+    se._online_model = _Spy()
+    fe = FeatureEngine()
+    for i in range(80):
+        fe.update(_candle(i))
+    se._feature_engines['A'] = fe
+    return se, fe
+
+
+def test_online_model_learns_from_entry_features_and_net_label():
+    se, fe = _engine_with_spy()
+    entry_vec = fe.latest_vector().copy()
+    se.record_entry('A', 100.0)
+    for i in range(80, 90):                      # market moves on before the exit
+        fe.update(_candle(i * 3))
+    assert not np.allclose(fe.latest_vector(), entry_vec)
+
+    # +0.01/share gross on 10 shares = +0.10, smaller than round-trip costs -> label 0
+    se.record_trade_outcome('A', 'SELL', 100.01, 10, pnl=0.10)
+    vec, label = se._online_model.calls[-1]
+    assert np.allclose(vec, entry_vec), 'must train on entry features, not exit features'
+    assert label == 0, 'tiny gross win that costs wipe out must be a loss'
+
+    se.record_entry('A', 100.0)
+    se.record_trade_outcome('A', 'SELL', 110.0, 10, pnl=100.0)
+    assert se._online_model.calls[-1][1] == 1
+    print('  ✓ trains on entry features; label is profit after costs')
+
+
+def test_online_model_skips_positions_it_did_not_open():
+    se, _ = _engine_with_spy()
+    se.record_trade_outcome('A', 'SELL', 105.0, 10, pnl=50.0)    # no record_entry
+    assert se._online_model.calls == []
+    se.record_entry('A', 100.0)
+    se.record_trade_outcome('A', 'SELL', 101.0, 10, pnl=10.0)
+    se.record_trade_outcome('A', 'SELL', 101.0, 10, pnl=10.0)    # duplicate close: entry already consumed
+    assert len(se._online_model.calls) == 1
+    print('  ✓ untracked / duplicate closes are ignored')
+
+
+def test_post_trade_agent_snapshots_entry_on_buy():
+    from src.agents.post_trade_agent import PostTradeAgent
+    seen = []
+
+    class _SE:
+        def record_entry(self, symbol, price): seen.append((symbol, price))
+        def record_trade_outcome(self, **kw): pass
+
+    with tempfile.TemporaryDirectory() as d:
+        pta = PostTradeAgent(capital_manager=None, signal_engine=_SE(), data_dir=d)
+        pta.start_day(1000.0)
+        pta.on_fill('A', 'BUY', 5, 100.0, None)
+        pta.on_fill('A', 'SELL', 5, 101.0, 5.0)
+    assert seen == [('A', 100.0)]
+    print('  ✓ BUY fill triggers the entry snapshot, SELL does not')
+
+
 if __name__ == '__main__':
     tests = [
         test_paper_broker_never_places_real_orders,
@@ -142,6 +218,9 @@ if __name__ == '__main__':
         test_completed_day_counting_and_idempotence,
         test_live_requires_approval,
         test_unknown_mode_falls_back_to_paper,
+        test_online_model_learns_from_entry_features_and_net_label,
+        test_online_model_skips_positions_it_did_not_open,
+        test_post_trade_agent_snapshots_entry_on_buy,
     ]
     passed = failed = 0
     for t in tests:
