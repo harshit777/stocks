@@ -1,12 +1,13 @@
 name: Trading Automation
 
+# REAL-MONEY trading is OFF by default and has no schedule while the 10-day paper
+# trial runs (see "Paper Trading" workflow). To allow it:
+#   1. Settings -> Secrets and variables -> Actions -> Variables:
+#        LIVE_TRADING_APPROVED = yes
+#   2. Run this workflow manually with action = live_trade.
+# To re-enable the daily 9:15 AM IST start later, add back:
+#   schedule: [{ cron: "45 3 * * 1-5" }]   and  github.event_name == 'schedule'  in live-trade's `if`.
 on:
-  # Schedule: Run during market hours (Mon-Fri, 9:15 AM - 3:30 PM IST)
-  schedule:
-    # 3:45 AM UTC = 9:15 AM IST (Market Open). live_trade_v2.py runs the whole
-    # session itself (square-off 3:20 PM, EOD accounting) so one start is enough.
-    - cron: "45 3 * * 1-5"
-
   # Manual trigger
   workflow_dispatch:
     inputs:
@@ -197,7 +198,7 @@ jobs:
     concurrency:
       group: live-trade
       cancel-in-progress: false
-    if: github.event.inputs.action == 'live_trade' || github.event.inputs.action == 'both' || github.event_name == 'schedule' || github.event_name == 'repository_dispatch' && github.event.action == 'trade-trigger'
+    if: vars.LIVE_TRADING_APPROVED == 'yes' && (github.event.inputs.action == 'live_trade' || github.event.inputs.action == 'both' || github.event_name == 'repository_dispatch' && github.event.action == 'trade-trigger')
 
     steps:
       - name: Checkout code
@@ -239,6 +240,7 @@ jobs:
           echo "ZERODHA_TOTP_SECRET=${ZERODHA_TOTP_SECRET}" >> .env
           echo "NEWSAPI_KEY=${NEWSAPI_KEY}" >> .env
           echo "TRADING_MODE=live" >> .env
+          echo "LIVE_TRADING_APPROVED=${{ vars.LIVE_TRADING_APPROVED }}" >> .env
           echo "MAX_LIVE_CAPITAL=${MAX_LIVE_CAPITAL:-500}" >> .env
           echo "MAX_DAILY_LOSS=${MAX_DAILY_LOSS:-50}" >> .env
           echo "ORDER_TIMEOUT=${ORDER_TIMEOUT:-30}" >> .env

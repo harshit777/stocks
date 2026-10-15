@@ -27,8 +27,9 @@
 </head>
 <body>
 <main>
-  <h1>Trading Status <span id="state" class="badge">loading</span></h1>
-  <div class="muted">Read-only. Start and stop from the GitHub Actions tab. Updated <span id="updated">-</span> (<span id="age">-</span>)</div>
+  <h1><span id="mode">Trading</span> Status <span id="state" class="badge">loading</span></h1>
+  <div class="muted">Read-only. Start and stop from the GitHub Actions tab. Updated <span id="updated">-</span> (<span id="age">-</span>)
+    &middot; <a href="summary.md" style="color:#58a6ff">Paper-trading summary</a></div>
 
   <div class="grid">
     <div class="card"><div class="label">Day P&amp;L</div><div class="value" id="pnl">-</div></div>
@@ -72,6 +73,7 @@ async function refresh() {
   const ageMin = Math.round((Date.now() - new Date(d.updated_at).getTime()) / 60000);
   const stale = d.state === "running" && ageMin > 15;
 
+  $("mode").textContent = d.mode === "paper" ? "Paper trading" : d.mode === "live" ? "LIVE trading" : "Trading";
   $("state").textContent = stale ? "stale" : d.state;
   $("state").className = "badge " + (stale ? "stale" : d.state);
   $("updated").textContent = new Date(d.updated_at).toLocaleString();

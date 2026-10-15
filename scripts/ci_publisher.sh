@@ -21,6 +21,11 @@ publish() {
   work="$(mktemp -d)"
   cp "$STATUS_FILE" "$work/status.json"
   cp docs/status/index.html "$work/index.html"
+  # Paper-trading reports (if any) so the daily win-rate summary is viewable
+  if [ -f data/paper/SUMMARY.md ]; then
+    cp data/paper/SUMMARY.md "$work/summary.md"
+    [ -d data/paper/reports ] && cp -R data/paper/reports "$work/reports"
+  fi
   touch "$work/.nojekyll"
   (
     cd "$work" || exit 0

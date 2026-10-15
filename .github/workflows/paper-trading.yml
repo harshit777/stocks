@@ -1,0 +1,207 @@
+name: Paper Trading
+
+# Simulated trading only. Orders are filled by PaperBroker; nothing is ever sent to
+# Zerodha. Real-money trading lives in "Trading Automation" and is disabled until
+# you set the repository variable LIVE_TRADING_APPROVED=yes.
+#
+#  - session: weekdays 9:10 AM IST, runs the 6-agent system on live market data with
+#             virtual money until PAPER_MAX_DAYS (default 10) full days are recorded.
+#  - train:   weekdays 4:15 PM IST, retrains the ML model. Keeps running after the
+#             paper period; disable this workflow in the Actions tab to stop it.
+#
+# Daily win-rate reports: data/paper/reports/YYYY-MM-DD.{md,json} + SUMMARY.md, saved
+# to the `paper-data` branch, shown in each run's summary, and published to the
+# status page at /summary.md.
+
+on:
+  schedule:
+    - cron: "40 3 * * 1-5"    # 9:10 AM IST  -> session
+    - cron: "45 10 * * 1-5"   # 4:15 PM IST  -> train
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "What to run"
+        required: true
+        default: "session"
+        type: choice
+        options:
+          - session
+          - train
+
+permissions:
+  contents: write
+
+# One job at a time touches the saved state.
+concurrency:
+  group: paper-state
+  cancel-in-progress: false
+
+env:
+  PAPER_MAX_DAYS: ${{ vars.PAPER_MAX_DAYS || '10' }}
+  PAPER_CAPITAL: ${{ vars.PAPER_CAPITAL || '10000' }}
+
+jobs:
+  session:
+    if: github.event.schedule == '40 3 * * 1-5' || (github.event_name == 'workflow_dispatch' && inputs.job == 'session')
+    runs-on: ubuntu-latest
+    timeout-minutes: 360   # GitHub max; 9:10 AM start + 3:00 PM square-off needs ~350 min
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Configure environment (PAPER mode)
+        env:
+          KITE_API_KEY: ${{ secrets.KITE_API_KEY }}
+          KITE_API_SECRET: ${{ secrets.KITE_API_SECRET }}
+          KITE_ACCESS_TOKEN: ${{ secrets.KITE_ACCESS_TOKEN }}
+          ZERODHA_USER_ID: ${{ secrets.ZERODHA_USER_ID }}
+          ZERODHA_PASSWORD: ${{ secrets.ZERODHA_PASSWORD }}
+          ZERODHA_TOTP_SECRET: ${{ secrets.ZERODHA_TOTP_SECRET }}
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+        run: |
+          {
+            echo "KITE_API_KEY=${KITE_API_KEY}"
+            echo "KITE_API_SECRET=${KITE_API_SECRET}"
+            echo "KITE_ACCESS_TOKEN=${KITE_ACCESS_TOKEN}"
+            echo "ZERODHA_USER_ID=${ZERODHA_USER_ID}"
+            echo "ZERODHA_PASSWORD=${ZERODHA_PASSWORD}"
+            echo "ZERODHA_TOTP_SECRET=${ZERODHA_TOTP_SECRET}"
+            echo "NEWSAPI_KEY=${NEWSAPI_KEY}"
+            echo "TRADING_MODE=paper"
+            echo "ENABLE_SHORTS=false"
+            echo "PAPER_CAPITAL=${PAPER_CAPITAL}"
+            echo "PAPER_MAX_DAYS=${PAPER_MAX_DAYS}"
+          } >> .env
+
+      - name: Restore saved state
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/ci_state.sh restore
+
+      - name: Paper-trading progress
+        id: progress
+        run: python3 scripts/paper_report.py status
+
+      - name: Refresh Kite access token (TOTP)
+        if: steps.progress.outputs.done != 'true'
+        run: python3 kite_auth.py || echo "::warning::Token refresh failed; falling back to the KITE_ACCESS_TOKEN secret"
+
+      - name: Run paper session
+        if: steps.progress.outputs.done != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 6h job cap: square off at 3:00 PM IST (900 min) so a 9:10 AM start fits.
+          SQUARE_OFF_MINUTES: "900"
+        run: |
+          REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push -q "$REPO_URL" --delete trading-control 2>/dev/null || true
+          rm -f data/STOP
+          bash scripts/ci_publisher.sh &
+          PUBLISHER_PID=$!
+          trap 'kill $PUBLISHER_PID 2>/dev/null || true' EXIT
+
+          set +e
+          python3 scripts/live_trade_v2.py
+          RC=$?
+          set -e
+
+          kill $PUBLISHER_PID 2>/dev/null || true
+          bash scripts/ci_publisher.sh once || true
+          git push -q "$REPO_URL" --delete trading-control 2>/dev/null || true
+          exit $RC
+
+      - name: Save state
+        if: always() && steps.progress.outputs.done != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/ci_state.sh save
+
+      - name: Daily report in job summary
+        if: always()
+        run: |
+          f="data/paper/reports/$(TZ=Asia/Kolkata date +%F).md"
+          {
+            if [ -f "$f" ]; then cat "$f"; else echo "No report today (holiday, period finished, or the session did not start)."; fi
+            echo
+            [ -f data/paper/SUMMARY.md ] && cat data/paper/SUMMARY.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload logs and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-session-${{ github.run_number }}
+          path: |
+            data/logs/
+            data/paper/reports/
+            data/paper/SUMMARY.md
+          retention-days: 90
+          if-no-files-found: ignore
+
+  train:
+    if: github.event.schedule == '45 10 * * 1-5' || (github.event_name == 'workflow_dispatch' && inputs.job == 'train')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Configure environment
+        env:
+          KITE_API_KEY: ${{ secrets.KITE_API_KEY }}
+          KITE_API_SECRET: ${{ secrets.KITE_API_SECRET }}
+          KITE_ACCESS_TOKEN: ${{ secrets.KITE_ACCESS_TOKEN }}
+          ZERODHA_USER_ID: ${{ secrets.ZERODHA_USER_ID }}
+          ZERODHA_PASSWORD: ${{ secrets.ZERODHA_PASSWORD }}
+          ZERODHA_TOTP_SECRET: ${{ secrets.ZERODHA_TOTP_SECRET }}
+        run: |
+          {
+            echo "KITE_API_KEY=${KITE_API_KEY}"
+            echo "KITE_API_SECRET=${KITE_API_SECRET}"
+            echo "KITE_ACCESS_TOKEN=${KITE_ACCESS_TOKEN}"
+            echo "ZERODHA_USER_ID=${ZERODHA_USER_ID}"
+            echo "ZERODHA_PASSWORD=${ZERODHA_PASSWORD}"
+            echo "ZERODHA_TOTP_SECRET=${ZERODHA_TOTP_SECRET}"
+            echo "TRADING_MODE=paper"
+          } >> .env
+
+      - name: Restore saved state
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/ci_state.sh restore
+
+      - name: Refresh Kite access token (TOTP)
+        run: python3 kite_auth.py || echo "::warning::Token refresh failed; falling back to the KITE_ACCESS_TOKEN secret"
+
+      - name: Train model
+        run: python3 scripts/train_model_daily.py
+
+      - name: Save state
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/ci_state.sh save
+
+      - name: Summary
+        if: always()
+        run: '[ -f data/paper/SUMMARY.md ] && cat data/paper/SUMMARY.md >> "$GITHUB_STEP_SUMMARY" || true'

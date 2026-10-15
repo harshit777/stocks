@@ -15,10 +15,18 @@ Live Intraday Trading — Agent Architecture
 Loop cadence: every 2 minutes during 9:15–3:20 IST on NSE trading days.
 Square-off:   3:20 PM — all positions closed before broker auto-squareoff.
 
+Modes (TRADING_MODE):
+  paper (default)  Simulated fills via PaperBroker. No order ever reaches Zerodha.
+                   Writes a daily report to data/paper/reports/. PAPER_CAPITAL sets
+                   the virtual capital (default 10000); PAPER_MAX_DAYS caps the run.
+  live             Real money. Refuses to start unless LIVE_TRADING_APPROVED=yes.
+
+Short selling is OFF unless ENABLE_SHORTS=true (ExecutionAgent does not yet track
+SELL-to-open positions, so a short would never be covered by the position monitor).
+
 Required env vars (config/.env):
   KITE_API_KEY, KITE_API_SECRET, KITE_ACCESS_TOKEN
-  TRADING_MODE=live
-  MAX_LIVE_CAPITAL=1000
+  MAX_LIVE_CAPITAL=1000       (live only)
   MAX_DAILY_LOSS=100          (default 10% of capital)
   NEWSAPI_KEY=<optional>      enables news sentiment boost in MarketScanner
 """
@@ -37,13 +45,20 @@ from dotenv import load_dotenv
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 load_dotenv()
 
+# Anything other than an explicit "live" is paper: unknown values never trade real money.
+MODE       = 'live' if os.getenv('TRADING_MODE') == 'live' else 'paper'
+PAPER      = MODE == 'paper'
+DATA_ROOT  = 'data/paper' if PAPER else 'data'
+ENABLE_SHORTS   = os.getenv('ENABLE_SHORTS', 'false').lower() == 'true'
+PAPER_MAX_DAYS  = int(os.getenv('PAPER_MAX_DAYS', '10'))
+
 os.makedirs('data/logs', exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(name)s] %(levelname)s — %(message)s',
     handlers=[
         logging.FileHandler(
-            f"data/logs/live_{datetime.now().strftime('%Y%m%d')}.log"
+            f"data/logs/{MODE}_{datetime.now().strftime('%Y%m%d')}.log"
         ),
         logging.StreamHandler(),
     ],
@@ -105,6 +120,7 @@ def _write_status(state, iteration, risk_gate, post_trade, execution, trader,
             })
         snapshot = {
             'state': state,
+            'mode': MODE,
             'updated_at': datetime.now(IST).isoformat(),
             'iteration': iteration,
             'risk': risk_gate.status(),
@@ -127,17 +143,35 @@ def main():
     # ------------------------------------------------------------------ #
     # 0. Safety gate                                                       #
     # ------------------------------------------------------------------ #
-    if os.getenv('TRADING_MODE') != 'live':
-        logger.error("TRADING_MODE must be 'live'. Exiting for safety.")
-        return
+    if MODE == 'live' and os.getenv('LIVE_TRADING_APPROVED') != 'yes':
+        logger.error("Live trading is NOT approved (LIVE_TRADING_APPROVED != 'yes'). Exiting.")
+        sys.exit(2)
 
-    max_initial_capital = float(os.getenv('MAX_LIVE_CAPITAL', '1000'))
-    max_daily_loss      = float(os.getenv('MAX_DAILY_LOSS', str(max_initial_capital * 0.10)))
-
-    logger.info("=" * 70)
-    logger.info("⚠️  LIVE INTRADAY TRADING — REAL MONEY")
-    logger.info(f"   Capital: ₹{max_initial_capital:,.0f} | Max loss: ₹{max_daily_loss:,.0f}")
-    logger.info("=" * 70)
+    if PAPER:
+        os.environ['TRADING_MODE'] = 'paper'   # KiteTrader reads this at construction
+        from src.utils.paper_report import completed_days, todays_report_complete
+        if todays_report_complete():
+            logger.info("Today's paper session is already recorded. Nothing to do.")
+            return
+        done = completed_days()
+        if done >= PAPER_MAX_DAYS:
+            logger.info(f"Paper-trading period finished ({done}/{PAPER_MAX_DAYS} days). Exiting.")
+            return
+        max_initial_capital = float(os.getenv('PAPER_CAPITAL', '10000'))
+        max_daily_loss      = max_initial_capital * 0.10
+        logger.info("=" * 70)
+        logger.info(f"📝 PAPER TRADING — simulated fills, no real orders (day {done + 1} of {PAPER_MAX_DAYS})")
+        logger.info(f"   Virtual capital: ₹{max_initial_capital:,.0f} | Max loss: ₹{max_daily_loss:,.0f}"
+                    f" | Shorts: {'on' if ENABLE_SHORTS else 'off'}")
+        logger.info("=" * 70)
+    else:
+        max_initial_capital = float(os.getenv('MAX_LIVE_CAPITAL', '1000'))
+        max_daily_loss      = float(os.getenv('MAX_DAILY_LOSS', str(max_initial_capital * 0.10)))
+        logger.info("=" * 70)
+        logger.info("⚠️  LIVE INTRADAY TRADING — REAL MONEY")
+        logger.info(f"   Capital: ₹{max_initial_capital:,.0f} | Max loss: ₹{max_daily_loss:,.0f}"
+                    f" | Shorts: {'on' if ENABLE_SHORTS else 'off'}")
+        logger.info("=" * 70)
 
     # ------------------------------------------------------------------ #
     # 1. Imports (deferred so env is loaded first)                        #
@@ -146,6 +180,7 @@ def main():
     from src.utils.capital_manager import CapitalRecoveryManager
     from src.utils.broker_health import BrokerHealthMonitor
     from src.utils.market_calendar import MarketCalendar
+    from src.kite_trader.paper_broker import PaperBroker
 
     from src.agents.market_scanner   import MarketScanner
     from src.agents.signal_engine    import SignalEngine
@@ -158,14 +193,20 @@ def main():
     # ------------------------------------------------------------------ #
     # 2. Infrastructure                                                    #
     # ------------------------------------------------------------------ #
-    trader = KiteTrader(enable_order_manager=True, enable_rate_limiter=True)
-    if not trader.is_connected():
+    real_trader = KiteTrader(enable_order_manager=not PAPER, enable_rate_limiter=True)
+    if not real_trader.is_connected():
         logger.error("Cannot connect to Zerodha — check KITE_ACCESS_TOKEN. Exiting.")
         return
 
-    logger.info("✓ Connected to Zerodha")
+    logger.info("✓ Connected to Zerodha (market data)")
+    # In paper mode every agent gets the PaperBroker: quotes/candles are real,
+    # orders are simulated, and the real order API is not reachable from it.
+    trader = PaperBroker(real_trader) if PAPER else real_trader
 
-    capital_manager = CapitalRecoveryManager(max_initial_capital=max_initial_capital)
+    capital_manager = CapitalRecoveryManager(
+        max_initial_capital=max_initial_capital,
+        data_dir=f'{DATA_ROOT}/capital',
+    )
     available_capital = capital_manager.get_available_capital()
     recovery = capital_manager.get_recovery_status()
     logger.info(f"✓ Capital today: ₹{available_capital:,.2f} | {recovery['message']}")
@@ -218,7 +259,7 @@ def main():
     post_trade = PostTradeAgent(
         capital_manager=capital_manager,
         signal_engine=signal_engine,
-        data_dir='data',
+        data_dir=DATA_ROOT,
     )
 
     # Wire ExecutionAgent → RiskGate + PostTradeAgent callbacks
@@ -244,6 +285,14 @@ def main():
     last_reconcile = None
     iteration = 0
 
+    # Daily-report bookkeeping
+    funnel = {'buy_signals': 0, 'sell_signals': 0, 'shorts_skipped': 0,
+              'approved': 0, 'blocked': 0, 'executed': 0}
+    exit_counts: dict = {}
+    end_reason = 'not started'
+    completed_normally = False
+    start_mins = None
+
     logger.info("⏳ Waiting for market open (9:15 AM IST)...")
     signals = {}
 
@@ -251,6 +300,7 @@ def main():
         while True:
             if _stop_requested():
                 logger.warning("🛑 Stop requested — squaring off and exiting")
+                end_reason = 'stopped by user'
                 break
 
             now = datetime.now(IST)
@@ -260,6 +310,7 @@ def main():
             # ---- Weekend / Holiday ---- #
             if not is_trading_day:
                 logger.info(f"Market closed ({now.strftime('%A')}). Exiting.")
+                end_reason = 'not a trading day'
                 break
 
             # ---- Before market open ---- #
@@ -274,9 +325,8 @@ def main():
             # ---- After market close ---- #
             if mins > MARKET_CLOSE:
                 logger.info("Market closed.")
-                _end_of_day(post_trade, execution, risk_gate,
-                            signal_engine, position_monitor)
-                break
+                end_reason = 'market closed'
+                break   # end-of-day accounting runs once, in `finally`
 
             # ---- Startup (runs once at market open) ---- #
             if not startup_done:
@@ -287,16 +337,23 @@ def main():
                 )
                 ticker.start()   # WebSocket up after startup so credentials are valid
                 startup_done = True
+                start_mins = mins
+                end_reason = 'interrupted'
 
             # ---- Square-off time ---- #
             if mins >= SQUARE_OFF and not squared_off:
-                logger.info("⏰ 3:20 PM — squaring off all positions")
+                logger.info("⏰ Square-off time — closing all positions")
+                n_open = len(execution.all_positions())
+                if n_open:
+                    exit_counts['EOD square-off'] = exit_counts.get('EOD square-off', 0) + n_open
                 execution.square_off_all(reason="EOD square-off")
                 squared_off = True
                 time.sleep(10)
                 continue
 
             if mins >= SQUARE_OFF:
+                completed_normally = True
+                end_reason = 'square-off reached'
                 break   # square-off done — finish now instead of idling to 3:30 PM
 
             # ---- Broker health check ---- #
@@ -307,6 +364,7 @@ def main():
                 )
                 risk_gate.halted = True
                 risk_gate.halt_reason = "Broker API unreachable"
+                end_reason = 'broker unreachable'
                 break
             if not health['is_healthy']:
                 logger.warning("⚠️  Broker health check failed — skipping iteration")
@@ -326,6 +384,9 @@ def main():
             exits = position_monitor.monitor(signal_overrides=signals)
             if exits:
                 logger.info(f"Exits this iteration: {exits}")
+                for reason in exits.values():
+                    key = str(reason).split(':')[0]
+                    exit_counts[key] = exit_counts.get(key, 0) + 1
 
             # Step B: new entry signals
             if not risk_gate.halted:
@@ -333,6 +394,11 @@ def main():
                     if execution.has_position(symbol):
                         continue   # already in — monitor handles exit
                     if signal not in ('BUY', 'SELL'):
+                        continue
+
+                    funnel['buy_signals' if signal == 'BUY' else 'sell_signals'] += 1
+                    if signal == 'SELL' and not ENABLE_SHORTS:
+                        funnel['shorts_skipped'] += 1
                         continue
 
                     # One quote call covers both BUY and SHORT evaluation
@@ -345,18 +411,24 @@ def main():
                     if signal == 'BUY':
                         decision = risk_gate.evaluate(symbol, 'BUY', ltp, day_high, day_low)
                         if decision.approved:
-                            execution.execute(symbol, decision, 'BUY')
+                            funnel['approved'] += 1
+                            if execution.execute(symbol, decision, 'BUY'):
+                                funnel['executed'] += 1
                             ticker.update_symbols(list(execution.all_positions().keys()))
                         else:
+                            funnel['blocked'] += 1
                             logger.debug(f"RiskGate blocked BUY {symbol}: {decision.reason}")
 
                     elif signal == 'SELL':
                         # Short entry — opens a new short position via MIS
                         decision = risk_gate.evaluate_short(symbol, ltp, day_high, day_low)
                         if decision.approved:
-                            execution.execute(symbol, decision, 'SELL')
+                            funnel['approved'] += 1
+                            if execution.execute(symbol, decision, 'SELL'):
+                                funnel['executed'] += 1
                             ticker.update_symbols(list(execution.all_positions().keys()))
                         else:
+                            funnel['blocked'] += 1
                             logger.debug(f"RiskGate blocked SHORT {symbol}: {decision.reason}")
 
             # Step C: periodic broker reconciliation (every 10 minutes)
@@ -386,16 +458,30 @@ def main():
 
     except KeyboardInterrupt:
         logger.info("\n⚠️  Interrupted by user")
+        end_reason = 'interrupted'
 
     except Exception as e:
         logger.error(f"❌ Fatal error: {e}", exc_info=True)
+        end_reason = f'error: {e}'
 
     finally:
         logger.info("Saving final state...")
         try:
             ticker.stop()
-            _end_of_day(post_trade, execution, risk_gate,
-                        signal_engine, position_monitor)
+            # Only do accounting for a session that actually started; otherwise a
+            # holiday/weekend/early-stop run would record a bogus zero day.
+            if startup_done:
+                _end_of_day(post_trade, execution, risk_gate,
+                            signal_engine, position_monitor)
+                if PAPER:
+                    # A day counts toward the paper-trading total only if it ran to
+                    # square-off and was not a last-minute start.
+                    complete = completed_normally and start_mins is not None and start_mins <= 12 * 60
+                    if completed_normally and not complete:
+                        end_reason = 'late start'
+                    _write_paper_report(post_trade, risk_gate, execution, signal_engine,
+                                        available_capital, funnel, exit_counts,
+                                        complete, end_reason)
         except Exception as e:
             logger.error(f"Final cleanup error: {e}")
         _write_status('stopped' if _stop_requested() else 'ended', iteration,
@@ -462,6 +548,42 @@ def _end_of_day(post_trade, execution, risk_gate, signal_engine, position_monito
     rs = risk_gate.status()
     post_trade.end_day(used_capital=rs['used_capital'])
     signal_engine.save_models()
+    try:
+        signal_engine._online_model.save()   # persist the incremental model too
+    except Exception as e:
+        logger.warning(f"Online model save failed: {e}")
+
+
+def _write_paper_report(post_trade, risk_gate, execution, signal_engine,
+                        starting_capital, funnel, exit_counts, complete, end_reason):
+    """Write today's paper-trading report (JSON + Markdown) and refresh SUMMARY.md."""
+    from src.utils.paper_report import build_daily_report, write_daily_report
+    try:
+        ml = signal_engine.get_ml_status()
+    except Exception:
+        ml = {}
+    report = build_daily_report(
+        day=datetime.now(IST).date().isoformat(),
+        trade_log=post_trade.trade_log,
+        funnel=funnel,
+        exits=exit_counts,
+        starting_capital=starting_capital,
+        max_drawdown=post_trade.max_drawdown,
+        mode=MODE,
+        complete=complete,
+        end_reason=end_reason,
+        open_positions=len(execution.all_positions()),
+        ml_status=ml,
+    )
+    path = write_daily_report(report)
+    wr = report['win_rate_gross_pct']
+    wn = report['win_rate_net_pct']
+    logger.info(
+        f"📝 Paper report {path}: {report['closed_trades']} trades, "
+        f"win rate {'n/a' if wr is None else f'{wr}%'} gross / "
+        f"{'n/a' if wn is None else f'{wn}%'} net, net P&L ₹{report['net_pnl']:+,.2f}, "
+        f"{'counts toward' if complete else 'does NOT count toward'} the {PAPER_MAX_DAYS}-day total"
+    )
 
 
 if __name__ == '__main__':
