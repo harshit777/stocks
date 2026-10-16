@@ -18,9 +18,13 @@ Fills follow how a limit order behaves on the exchange:
   - a small adverse move (`slippage_bps`, default 5 = 0.05%) is applied to every fill as a
     stand-in for the latency between seeing a price and the order reaching the exchange.
     This is an assumption, not a measurement; it never pushes a fill past the limit.
+  - circuit limits (Kite's `lower_circuit_limit` / `upper_circuit_limit`): the exchange
+    rejects an order priced outside the band, and a fill can never happen outside it. Both
+    are rejected immediately (no waiting), like a real RMS/exchange rejection. A stock
+    locked at its circuit has nothing to trade against, so the book check also fails.
 
 Not modelled: partial fills (an order the visible book can't cover is not filled),
-queue position, margin/leverage, and broker rejections.
+queue position, margin/leverage, and other broker rejections.
 """
 import logging
 import threading
@@ -54,15 +58,36 @@ class PaperBroker:
     # Fill model
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _band(q: Dict) -> tuple:
+        """(lower, upper) circuit prices from a quote; (0, 0) means unknown / no band."""
+        lo = float(q.get('lower_circuit_limit') or 0)
+        hi = float(q.get('upper_circuit_limit') or 0)
+        return (lo, hi) if lo > 0 and hi >= lo else (0.0, 0.0)
+
+    def _outside_band(self, symbol: str, limit: Optional[float]) -> Optional[str]:
+        """Reason string if the order price breaks the circuit band, else None."""
+        if not limit:
+            return None
+        q = self._trader.get_quote([symbol]).get(f"NSE:{symbol}", {})
+        lo, hi = self._band(q)
+        if hi and not (lo <= limit <= hi):
+            return f"price ₹{limit} is outside the circuit band ₹{lo}–₹{hi}"
+        return None
+
     def _fill_price(self, symbol: str, side: str, qty: int,
                     limit: Optional[float]) -> Optional[float]:
         """Price we would receive right now, or None if the market is beyond the limit."""
         q = self._trader.get_quote([symbol]).get(f"NSE:{symbol}", {})
         ltp = q.get('last_price') or 0
+        lo, hi = self._band(q)
+        has_depth = isinstance(q.get('depth'), dict)
         book = (q.get('depth') or {}).get('sell' if side == 'BUY' else 'buy') or []
         levels = [(float(l['price']), int(l.get('quantity', 0))) for l in book
                   if l.get('price', 0) > 0 and l.get('quantity', 0) > 0]
 
+        if hi:                                            # nothing trades outside the band
+            levels = [(p, n) for p, n in levels if lo <= p <= hi]
         if levels:
             levels.sort(reverse=(side == 'SELL'))        # best price first
             taken, cost = 0, 0.0
@@ -77,15 +102,21 @@ class PaperBroker:
                     return self._with_slippage(side, cost / qty, limit)
             return None                                   # book within the limit can't cover it
 
+        if has_depth:
+            return None        # a book was reported but nobody is on the other side (e.g. locked circuit)
+
         if ltp > 0 and (not limit or (side == 'BUY' and ltp <= limit)
                         or (side == 'SELL' and ltp >= limit)):
-            return self._with_slippage(side, float(ltp), limit)
+            return self._with_slippage(side, float(ltp), limit, (lo, hi))
         return None
 
-    def _with_slippage(self, side: str, price: float, limit: Optional[float]) -> float:
+    def _with_slippage(self, side: str, price: float, limit: Optional[float],
+                       band: tuple = (0.0, 0.0)) -> float:
         adj = price * (1 + self._slip) if side == 'BUY' else price * (1 - self._slip)
         if limit:                                         # a limit order never fills past its limit
             adj = min(adj, limit) if side == 'BUY' else max(adj, limit)
+        if band[1]:                                       # ...nor outside the circuit band
+            adj = min(max(adj, band[0]), band[1])
         return round(adj, 2)
 
     # ------------------------------------------------------------------
@@ -101,6 +132,21 @@ class PaperBroker:
             return None
 
         limit = price if (price and order_type != 'MARKET') else None
+        bad = self._outside_band(symbol, limit)
+        if bad:
+            with self._lock:
+                self._seq += 1
+                order_id = f"PAPER-{datetime.now():%Y%m%d}-{self._seq:04d}"
+                self._orders.append({
+                    'order_id': order_id, 'tradingsymbol': symbol,
+                    'transaction_type': transaction_type, 'quantity': quantity,
+                    'price': limit, 'status': 'REJECTED', 'status_message': bad,
+                    'timestamp': datetime.now().isoformat(),
+                })
+            logger.warning(f"PaperBroker: {transaction_type} {quantity} {symbol} REJECTED — {bad} "
+                           f"[{order_id}]")
+            return None
+
         tries = int(self._fill_wait / self._poll) + 1
         fill = None
         for i in range(tries):

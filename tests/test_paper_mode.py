@@ -428,7 +428,7 @@ def test_paper_buy_does_not_fill_when_price_ran_away():
     assert pb.place_order('X', 'BUY', 10, price=100.5) is None   # market above the limit
     assert pb.get_positions()['net'] == []
     assert [o['status'] for o in pb.get_orders()] == ['CANCELLED']
-    assert t.polls == 3, t.polls                                 # re-checked while waiting, then gave up
+    assert t.polls == 4, t.polls                                 # 1 band check + 3 fill polls
     print('  \u2713 buy limit below a rising market is re-checked, then cancelled; no position')
 
 
@@ -558,6 +558,76 @@ def test_fast_position_check_uses_open_positions_only():
     print(f'  \u2713 fast check idle with no positions; {len(calls)} checks in 0.1s with one open')
 
 
+class _BandBook(_Book):
+    def __init__(self, ltp, lo, hi, **kw):
+        super().__init__(ltp, **kw)
+        self.lo, self.hi = lo, hi
+
+    def get_quote(self, symbols):
+        out = super().get_quote(symbols)
+        for q in out.values():
+            if self.lo is not None:
+                q['lower_circuit_limit'], q['upper_circuit_limit'] = self.lo, self.hi
+        return out
+
+
+def test_circuit_band_rejects_orders_priced_outside_it():
+    t = _BandBook(100.0, 90.0, 110.0, asks=[_lvl(100.1, 500)], bids=[_lvl(99.9, 500)])
+    pb = PaperBroker(t, fill_wait=0, slippage_bps=0)
+    assert pb.place_order('X', 'BUY', 5, price=110.5) is None           # above upper circuit
+    assert pb.place_order('X', 'SELL', 5, price=89.0) is None           # below lower circuit
+    o = pb.get_orders()
+    assert [x['status'] for x in o] == ['REJECTED', 'REJECTED'] and 'circuit band' in o[0]['status_message']
+    assert pb.get_positions()['net'] == []
+    assert pb.place_order('X', 'BUY', 5, price=100.5)                    # inside the band: fine
+    print('  \u2713 orders priced outside the circuit band are REJECTED; inside is accepted')
+
+
+def test_circuit_rejection_is_immediate_not_retried():
+    t = _BandBook(100.0, 90.0, 110.0, asks=[_lvl(100.1, 500)])
+    waited = []
+    pb = PaperBroker(t, fill_wait=10, poll_interval=2, sleep=waited.append, slippage_bps=0)
+    assert pb.place_order('X', 'BUY', 5, price=120.0) is None
+    assert waited == [], 'a rejection must not wait like an unfilled limit order'
+    print('  \u2713 rejection is immediate (no waiting)')
+
+
+def test_stock_locked_at_circuit_has_nothing_to_trade_against():
+    # locked at the upper circuit: no sellers, only bids; a buy within the band cannot fill
+    t = _BandBook(110.0, 90.0, 110.0, asks=[], bids=[_lvl(110.0, 90_000)])
+    pb = PaperBroker(t, fill_wait=0, slippage_bps=0)
+    assert pb.place_order('X', 'BUY', 5, price=110.0) is None
+    # lower-circuit lock: exit is possible only at the circuit price, nobody buys
+    t2 = _BandBook(90.0, 90.0, 110.0, asks=[_lvl(90.0, 90_000)], bids=[])
+    pb2 = PaperBroker(t2, fill_wait=0, slippage_bps=0)
+    pb2._positions['X'] = {'quantity': 5, 'average_price': 100.0}
+    assert pb2.place_order('X', 'SELL', 5, price=90.0) is None
+    assert pb2.get_positions()['net'][0]['quantity'] == 5               # stuck in the position
+    print('  \u2713 locked at a circuit: no counter-side, so no fill (a real trapped position)')
+
+
+def test_fill_never_lands_outside_the_band_even_with_slippage():
+    t = _BandBook(109.99, 90.0, 110.0, asks=[_lvl(109.99, 500)], bids=[_lvl(109.9, 500)])
+    pb = PaperBroker(t, fill_wait=0, slippage_bps=50)                    # 0.5% would be 110.54
+    oid = pb.place_order('X', 'BUY', 5, price=111.0)                     # limit above band -> rejected
+    assert oid is None
+    oid = pb.place_order('X', 'BUY', 5, price=110.0)
+    assert pb.get_fill_price(oid) == 110.0
+    # book levels outside the band are ignored
+    t2 = _BandBook(100.0, 90.0, 110.0, asks=[_lvl(111.0, 500), _lvl(100.2, 3)], bids=[_lvl(99.9, 500)])
+    assert PaperBroker(t2, fill_wait=0, slippage_bps=0).place_order('X', 'BUY', 10, price=112.0) is None
+    print('  \u2713 fills are clamped inside the band; out-of-band book levels are ignored')
+
+
+def test_missing_circuit_fields_do_not_block_trading():
+    t = _BandBook(100.0, None, None, asks=[_lvl(100.1, 500)], bids=[_lvl(99.9, 500)])
+    pb = PaperBroker(t, fill_wait=0, slippage_bps=0)
+    assert pb.place_order('X', 'BUY', 5, price=100.5)
+    z = _BandBook(100.0, 0, 0, asks=[_lvl(100.1, 500)])
+    assert PaperBroker(z, fill_wait=0, slippage_bps=0).place_order('X', 'BUY', 5, price=100.5)
+    print('  \u2713 quote without circuit limits (or zeros) trades normally')
+
+
 if __name__ == '__main__':
     tests = [
         test_paper_broker_never_places_real_orders,
@@ -587,6 +657,11 @@ if __name__ == '__main__':
         test_exit_not_double_sold_and_unfilled_exit_retries,
         test_square_off_retries_until_filled,
         test_fast_position_check_uses_open_positions_only,
+        test_circuit_band_rejects_orders_priced_outside_it,
+        test_circuit_rejection_is_immediate_not_retried,
+        test_stock_locked_at_circuit_has_nothing_to_trade_against,
+        test_fill_never_lands_outside_the_band_even_with_slippage,
+        test_missing_circuit_fields_do_not_block_trading,
     ]
     passed = failed = 0
     for t in tests:
