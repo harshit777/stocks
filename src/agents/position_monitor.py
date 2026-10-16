@@ -15,6 +15,7 @@ Exit triggers (checked in priority order):
 Does NOT place orders directly — calls ExecutionAgent.execute().
 """
 import logging
+import threading
 from typing import Dict, Optional
 from datetime import datetime
 
@@ -51,6 +52,8 @@ class PositionMonitor:
 
         # Track peak price per position for trailing stop
         self._peak_price: Dict[str, float] = {}
+        # Exits can be triggered from the live-tick thread and the main loop
+        self._exit_lock = threading.Lock()
 
     # ------------------------------------------------------------------
     # Main loop call
@@ -170,21 +173,29 @@ class PositionMonitor:
 
     def _exit(self, symbol: str, pos: Position, current_price: float, reason: str):
         """Place the exit order via ExecutionAgent."""
-        self.logger.info(f"PositionMonitor: exiting {symbol} — {reason}")
-        limit_price = round(current_price * (1 - 0.003), 2)
-        decision = RiskDecision(
-            approved=True,
-            quantity=pos.quantity,
-            limit_price=limit_price,
-            reason=reason,
-        )
-        success = self.execution.execute(symbol, decision, 'SELL')
-        if success:
-            self._peak_price.pop(symbol, None)
-        else:
-            self.logger.error(
-                f"PositionMonitor: exit order FAILED for {symbol} — manual action required"
+        # The live-tick thread and the main loop can both reach here for the same
+        # position; whoever lost the race must not sell what is already sold.
+        with self._exit_lock:
+            live = self.execution.get_position(symbol)
+            if live is None:
+                return
+            pos = live
+            self.logger.info(f"PositionMonitor: exiting {symbol} — {reason}")
+            limit_price = round(current_price * (1 - 0.003), 2)
+            decision = RiskDecision(
+                approved=True,
+                quantity=pos.quantity,
+                limit_price=limit_price,
+                reason=reason,
             )
+            success = self.execution.execute(symbol, decision, 'SELL')
+            if success:
+                self._peak_price.pop(symbol, None)
+            else:
+                self.logger.error(
+                    f"PositionMonitor: exit of {symbol} did not fill — "
+                    f"will retry at the next price check (investigate if this repeats)"
+                )
 
     def reset_daily(self):
         """Clear tracking state at start of new day."""

@@ -52,12 +52,12 @@ class _FakeTrader:
 
 def test_paper_broker_never_places_real_orders():
     t = _FakeTrader()
-    pb = PaperBroker(t)
-    oid = pb.place_order('SBIN', 'BUY', 10, price=100.0)
+    pb = PaperBroker(t, fill_wait=0)
+    oid = pb.place_order('SBIN', 'BUY', 10, price=100.5)
     assert oid and oid.startswith('PAPER-')
     assert t.kite.real_orders == 0
     assert pb.get_positions()['net'][0]['quantity'] == 10
-    pb.place_order('SBIN', 'SELL', 10, price=101.0)
+    pb.place_order('SBIN', 'SELL', 10, price=99.0)          # marketable sell limit
     assert pb.get_positions()['net'] == []
     assert t.kite.real_orders == 0
     print('  ✓ orders simulated, real API untouched')
@@ -394,6 +394,170 @@ def test_day_end_books_net_pnl_after_charges():
     print(f'  \u2713 day end books net P&L (gross 20.00 - charges {costs:.2f}), not gross')
 
 
+class _Book:
+    """Quote source whose price and order book we control."""
+    def __init__(self, ltp, asks=None, bids=None):
+        self.kite = _FakeKite(); self.order_manager = object(); self.api_key = 'k'
+        self.ltp, self.asks, self.bids = ltp, asks, bids
+        self.polls = 0
+
+    def get_quote(self, symbols):
+        self.polls += 1
+        q = {'last_price': self.ltp}
+        if self.asks is not None or self.bids is not None:
+            q['depth'] = {'sell': self.asks or [], 'buy': self.bids or []}
+        return {f'NSE:{s}': q for s in symbols}
+
+
+def _lvl(price, qty):
+    return {'price': price, 'quantity': qty, 'orders': 1}
+
+
+def test_paper_buy_fills_at_available_price_not_the_limit():
+    t = _Book(100.0, asks=[_lvl(100.10, 50), _lvl(100.30, 50)], bids=[_lvl(99.9, 50)])
+    pb = PaperBroker(t, fill_wait=0, slippage_bps=0)
+    oid = pb.place_order('X', 'BUY', 10, price=100.5)          # limit 100.5, market 100.10
+    assert pb.get_fill_price(oid) == 100.10, pb.get_fill_price(oid)
+    assert pb.get_positions()['net'][0]['average_price'] == 100.10
+    print('  \u2713 buy filled at the ask (100.10), better than the 100.50 limit')
+
+
+def test_paper_buy_does_not_fill_when_price_ran_away():
+    t = _Book(101.0, asks=[_lvl(101.0, 500)], bids=[_lvl(100.9, 500)])
+    pb = PaperBroker(t, fill_wait=4, poll_interval=2, sleep=lambda s: None, slippage_bps=0)
+    assert pb.place_order('X', 'BUY', 10, price=100.5) is None   # market above the limit
+    assert pb.get_positions()['net'] == []
+    assert [o['status'] for o in pb.get_orders()] == ['CANCELLED']
+    assert t.polls == 3, t.polls                                 # re-checked while waiting, then gave up
+    print('  \u2713 buy limit below a rising market is re-checked, then cancelled; no position')
+
+
+def test_paper_order_fills_if_price_comes_back_within_the_wait():
+    class Drift(_Book):
+        def get_quote(self, symbols):
+            self.ltp = 101.0 if self.polls < 1 else 100.2
+            return super().get_quote(symbols)
+    t = Drift(101.0)
+    pb = PaperBroker(t, fill_wait=6, poll_interval=2, sleep=lambda s: None, slippage_bps=0)
+    oid = pb.place_order('X', 'BUY', 10, price=100.5)
+    assert oid and pb.get_fill_price(oid) == 100.2
+    print('  \u2713 order that could not fill at first fills when the price returns inside the wait')
+
+
+def test_paper_sell_walks_the_book_and_gap_down_stop_fills_lower():
+    bids = [_lvl(99.0, 4), _lvl(98.5, 6), _lvl(98.0, 100)]
+    t = _Book(99.0, asks=[_lvl(99.2, 100)], bids=bids)
+    pb = PaperBroker(t, fill_wait=0, slippage_bps=0)
+    pb.place_order('X', 'BUY', 10, price=99.5)
+    oid = pb.place_order('X', 'SELL', 10, price=98.0)            # 4 @ 99.0, 6 @ 98.5
+    assert pb.get_fill_price(oid) == round((4 * 99.0 + 6 * 98.5) / 10, 2) == 98.7
+    # a fall straight through the sell limit: nothing within the limit -> not filled
+    t2 = _Book(95.0, asks=[_lvl(95.2, 100)], bids=[_lvl(95.0, 100)])
+    pb2 = PaperBroker(t2, fill_wait=0, slippage_bps=0)
+    pb2._positions['X'] = {'quantity': 10, 'average_price': 100.0}
+    assert pb2.place_order('X', 'SELL', 10, price=98.0) is None
+    assert pb2.get_positions()['net'][0]['quantity'] == 10       # still holding
+    print('  \u2713 sell walks the bid levels (98.70); a fall through the limit does not fill')
+
+
+def test_paper_book_too_thin_for_the_order_does_not_fill():
+    t = _Book(100.0, asks=[_lvl(100.0, 3)], bids=[_lvl(99.9, 3)])
+    pb = PaperBroker(t, fill_wait=0, slippage_bps=0)
+    assert pb.place_order('X', 'BUY', 10, price=100.5) is None
+    print('  \u2713 visible liquidity (3 shares) cannot absorb a 10-share order -> no fill')
+
+
+def test_paper_slippage_never_passes_the_limit():
+    t = _Book(100.0, asks=[_lvl(100.0, 100)], bids=[_lvl(99.9, 100)])
+    pb = PaperBroker(t, fill_wait=0, slippage_bps=5)
+    assert pb.get_fill_price(pb.place_order('X', 'BUY', 10, price=100.5)) == 100.05
+    assert pb.get_fill_price(pb.place_order('X', 'SELL', 10, price=99.0)) == 99.85
+    tight = PaperBroker(_Book(100.0, asks=[_lvl(100.0, 100)]), fill_wait=0, slippage_bps=50)
+    assert tight.get_fill_price(tight.place_order('X', 'BUY', 5, price=100.1)) == 100.1   # capped at limit
+    print('  \u2713 5 bps slippage applied (100.05 / 99.85) and capped at the limit')
+
+
+def test_execution_agent_books_the_real_fill_and_handles_no_fill():
+    from src.agents.execution_agent import ExecutionAgent
+    from src.agents.risk_gate import RiskDecision
+    t = _Book(100.0, asks=[_lvl(100.10, 500)], bids=[_lvl(99.9, 500)])
+    ex = ExecutionAgent(PaperBroker(t, fill_wait=0, slippage_bps=0), stop_loss_pct=0.015)
+    assert ex.execute('X', RiskDecision(True, quantity=10, limit_price=100.5, reason='t'), 'BUY')
+    pos = ex.get_position('X')
+    assert pos.avg_price == 100.10, pos.avg_price                 # not the 100.50 limit
+    t.ltp, t.asks, t.bids = 105.0, [_lvl(105.0, 500)], [_lvl(104.9, 500)]
+    assert not ex.execute('Y', RiskDecision(True, quantity=10, limit_price=100.5, reason='t'), 'BUY')
+    assert ex.get_position('Y') is None                           # unfilled order creates no position
+    print('  \u2713 ExecutionAgent books the true fill (100.10) and ignores an unfilled order')
+
+
+def test_exit_not_double_sold_and_unfilled_exit_retries():
+    from src.agents.execution_agent import ExecutionAgent
+    from src.agents.position_monitor import PositionMonitor
+    t = _Book(100.0, asks=[_lvl(100.0, 500)], bids=[_lvl(99.9, 500)])
+    ex = ExecutionAgent(PaperBroker(t, fill_wait=0, slippage_bps=0), stop_loss_pct=0.015)
+    ex._record_fill('X', 'BUY', 10, 100.0)
+    ex.trader._positions['X'] = {'quantity': 10, 'average_price': 100.0}
+    pm = PositionMonitor(ex, risk_gate=None, trader=t, stop_loss_pct=0.015)
+    pos = ex.get_position('X')
+    pm._exit('X', pos, 99.9, 'stop')
+    assert ex.get_position('X') is None
+    n = len(ex.order_history)
+    pm._exit('X', pos, 99.9, 'stop again')                       # the race loser must do nothing
+    assert len(ex.order_history) == n
+    # an exit that cannot fill leaves the position open so the next check retries it
+    t2 = _Book(90.0, asks=[_lvl(90.1, 500)], bids=[_lvl(90.0, 500)])
+    ex2 = ExecutionAgent(PaperBroker(t2, fill_wait=0, slippage_bps=0), stop_loss_pct=0.015)
+    ex2._record_fill('X', 'BUY', 10, 100.0)
+    ex2.trader._positions['X'] = {'quantity': 10, 'average_price': 100.0}
+    PositionMonitor(ex2, None, t2)._exit('X', ex2.get_position('X'), 100.0, 'stale price')
+    assert ex2.get_position('X') is not None
+    print('  \u2713 a second exit is ignored; an unfilled exit leaves the position open to retry')
+
+
+def test_square_off_retries_until_filled():
+    from src.agents.execution_agent import ExecutionAgent
+    class Falling(_Book):
+        def get_quote(self, symbols):
+            self.ltp -= 1.0 if self.polls < 3 else 0
+            self.bids = [_lvl(self.ltp - 3.0 if self.polls < 2 else self.ltp, 500)]
+            self.asks = [_lvl(self.ltp + 0.1, 500)]
+            return super().get_quote(symbols)
+    t = Falling(100.0)
+    ex = ExecutionAgent(PaperBroker(t, fill_wait=0, slippage_bps=0), stop_loss_pct=0.015)
+    ex._record_fill('X', 'BUY', 10, 100.0)
+    ex.trader._positions['X'] = {'quantity': 10, 'average_price': 100.0}
+    ex.square_off_all('test')
+    assert ex.get_position('X') is None, 'square-off must keep trying until it fills'
+    print('  \u2713 square-off re-quotes and retries when the first exit misses')
+
+
+def test_fast_position_check_uses_open_positions_only():
+    import importlib.util
+    os.environ['TRADING_MODE'] = 'paper'
+    spec = importlib.util.spec_from_file_location('lt', os.path.join(ROOT, 'scripts', 'live_trade_v2.py'))
+    lt = importlib.util.module_from_spec(spec); spec.loader.exec_module(lt)
+    lt.FAST_CHECK = 0.01
+    calls = []
+
+    class PM:
+        def monitor(self, signal_overrides=None):
+            calls.append(1); return {}
+    class Ex:
+        def __init__(self, held): self.held = held
+        def all_positions(self): return {'X': 1} if self.held else {}
+    from datetime import datetime
+    midday = lambda: datetime(2026, 1, 5, 11, 0)
+    lt._watch_positions(0.1, PM(), Ex(False), {}, now_fn=midday)
+    assert calls == [], 'no open position -> no quote calls'
+    lt._watch_positions(0.1, PM(), Ex(True), {}, now_fn=midday)
+    assert len(calls) >= 3, len(calls)
+    n = len(calls)
+    lt._watch_positions(0.1, PM(), Ex(True), {}, now_fn=lambda: datetime(2026, 1, 5, 15, 25))
+    assert len(calls) == n, 'after square-off time the main loop owns exits'
+    print(f'  \u2713 fast check idle with no positions; {len(calls)} checks in 0.1s with one open')
+
+
 if __name__ == '__main__':
     tests = [
         test_paper_broker_never_places_real_orders,
@@ -413,6 +577,16 @@ if __name__ == '__main__':
         test_market_calendar_knows_2026_nse_holidays,
         test_paper_capital_compounds_net_of_costs_and_live_stays_capped,
         test_day_end_books_net_pnl_after_charges,
+        test_paper_buy_fills_at_available_price_not_the_limit,
+        test_paper_buy_does_not_fill_when_price_ran_away,
+        test_paper_order_fills_if_price_comes_back_within_the_wait,
+        test_paper_sell_walks_the_book_and_gap_down_stop_fills_lower,
+        test_paper_book_too_thin_for_the_order_does_not_fill,
+        test_paper_slippage_never_passes_the_limit,
+        test_execution_agent_books_the_real_fill_and_handles_no_fill,
+        test_exit_not_double_sold_and_unfilled_exit_retries,
+        test_square_off_retries_until_filled,
+        test_fast_position_check_uses_open_positions_only,
     ]
     passed = failed = 0
     for t in tests:

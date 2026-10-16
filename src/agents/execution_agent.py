@@ -130,6 +130,12 @@ class ExecutionAgent:
                 return False
 
             fill_price = decision.limit_price  # confirmed by OrderManager
+            # The paper broker reports the price it actually filled at (often better than
+            # the limit); the real broker path has no such hook and keeps the limit.
+            get_fill = getattr(self.trader, 'get_fill_price', None)
+            actual = get_fill(order_id) if callable(get_fill) else None
+            if isinstance(actual, (int, float)) and actual > 0:
+                fill_price = float(actual)
             self._record_fill(symbol, transaction_type, decision.quantity, fill_price)
             return True
 
@@ -147,22 +153,29 @@ class ExecutionAgent:
         """
         self.logger.info(f"ExecutionAgent: squaring off all positions — {reason}")
         for symbol in list(self.positions.keys()):
-            pos = self.positions[symbol]
-            try:
-                # Get fresh price
-                quotes = self.trader.get_quote([symbol])
-                ltp = quotes.get(f"NSE:{symbol}", {}).get('last_price', pos.avg_price)
-                limit = round(ltp * (1 - 0.003), 2)   # 0.3% below LTP
+            # A limit order can miss in a fast fall, so re-quote and retry a few times
+            for attempt in range(1, 4):
+                pos = self.positions.get(symbol)
+                if pos is None:
+                    break
+                try:
+                    quotes = self.trader.get_quote([symbol])
+                    ltp = quotes.get(f"NSE:{symbol}", {}).get('last_price', pos.avg_price)
+                    limit = round(ltp * (1 - 0.003), 2)   # 0.3% below LTP
 
-                decision = RiskDecision(
-                    approved=True,
-                    quantity=pos.quantity,
-                    limit_price=limit,
-                    reason=reason,
-                )
-                self.execute(symbol, decision, 'SELL')
-            except Exception as e:
-                self.logger.error(f"ExecutionAgent: square-off failed for {symbol}: {e}")
+                    decision = RiskDecision(
+                        approved=True,
+                        quantity=pos.quantity,
+                        limit_price=limit,
+                        reason=reason,
+                    )
+                    if self.execute(symbol, decision, 'SELL'):
+                        break
+                    self.logger.warning(
+                        f"ExecutionAgent: square-off of {symbol} not filled (attempt {attempt}/3)")
+                except Exception as e:
+                    self.logger.error(f"ExecutionAgent: square-off failed for {symbol}: {e}")
+                    break
 
     # ------------------------------------------------------------------
     # Position book queries

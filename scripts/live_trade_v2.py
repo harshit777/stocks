@@ -101,7 +101,9 @@ MARKET_OPEN    = 9 * 60 + 15   # 9:15 AM
 # SQUARE_OFF_MINUTES=900 (3:00 PM) to finish a 9:15 AM start inside the cap.
 SQUARE_OFF     = int(os.getenv('SQUARE_OFF_MINUTES', 15 * 60 + 20))
 MARKET_CLOSE   = 15 * 60 + 30  # 3:30 PM
-CHECK_INTERVAL = 120            # seconds between iterations
+CHECK_INTERVAL = 120            # seconds between full iterations (signals, entries): the ML
+                                # features treat each pass as one bar, so this cadence is kept
+FAST_CHECK     = float(os.getenv('FAST_CHECK_SECONDS', '5'))   # open-position stop/target check
 STATUS_FILE    = 'data/status.json'
 STOP_FILE      = 'data/STOP'    # created by the CI publisher when a stop is requested
 
@@ -115,6 +117,28 @@ def _sleep(seconds: float):
     end = time.time() + seconds
     while time.time() < end and not _stop_requested():
         time.sleep(min(5, max(0, end - time.time())))
+
+
+def _watch_positions(seconds, position_monitor, execution, exit_counts, now_fn=None):
+    """
+    Wait out the rest of an iteration, but while any position is open re-check its
+    stop / trailing stop / target every FAST_CHECK seconds instead of every 2 minutes.
+    Only one quote call per check, for the open symbols only.
+    """
+    end = time.time() + seconds
+    while time.time() < end and not _stop_requested():
+        time.sleep(min(FAST_CHECK, max(0.0, end - time.time())))
+        now = now_fn() if now_fn else datetime.now(IST)
+        if now.hour * 60 + now.minute >= SQUARE_OFF:
+            return                      # the main loop owns the square-off
+        if not execution.all_positions():
+            continue
+        try:
+            for reason in position_monitor.monitor().values():
+                key = str(reason).split(':')[0]
+                exit_counts[key] = exit_counts.get(key, 0) + 1
+        except Exception as e:
+            logger.warning(f"Fast position check failed (will retry): {e}")
 
 
 def _ml_block(signal_engine):
@@ -526,7 +550,7 @@ def main():
             _write_status('running', iteration, risk_gate, post_trade,
                           execution, trader, signals, signal_engine.symbols,
                           scanner, signal_engine, analyst)
-            _sleep(CHECK_INTERVAL)
+            _watch_positions(CHECK_INTERVAL, position_monitor, execution, exit_counts)
 
     except KeyboardInterrupt:
         logger.info("\n⚠️  Interrupted by user")
