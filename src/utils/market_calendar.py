@@ -14,14 +14,13 @@ class MarketCalendar:
     NSE market calendar with holiday detection.
     
     Features:
-    - NSE trading holidays for 2025
+    - NSE trading holidays for 2025 and 2026
     - Weekend detection
     - Market hours validation
     """
     
-    # NSE Holidays for 2025 (updated annually)
-    # ponytail: hardcoded for 2025 only — update each year or replace with
-    # a live fetch from NSE's holiday API: https://www.nseindia.com/api/holiday-master?type=trading
+    # NSE equity-segment (CM) holidays, hardcoded per year — add the next year's list
+    # from https://www.nseindia.com/api/holiday-master?type=trading before January.
     NSE_HOLIDAYS_2025 = {
         date(2025, 1, 26): "Republic Day",
         date(2025, 3, 14): "Mahashivratri",
@@ -40,13 +39,39 @@ class MarketCalendar:
         date(2025, 11, 5): "Guru Nanak Jayanti",
         date(2025, 12, 25): "Christmas",
     }
+
+    # As published by NSE (CM segment). Weekend entries are kept for completeness.
+    # 8 Nov 2026 (Sunday, Diwali Laxmi Pujan) has only a special evening Muhurat session,
+    # not a regular day, so it is correctly a non-trading day here.
+    NSE_HOLIDAYS_2026 = {
+        date(2026, 1, 15): "Municipal Corporation Election - Maharashtra",
+        date(2026, 1, 26): "Republic Day",
+        date(2026, 2, 15): "Mahashivratri",
+        date(2026, 3, 3): "Holi",
+        date(2026, 3, 21): "Id-Ul-Fitr (Ramadan Eid)",
+        date(2026, 3, 26): "Shri Ram Navami",
+        date(2026, 3, 31): "Shri Mahavir Jayanti",
+        date(2026, 4, 3): "Good Friday",
+        date(2026, 4, 14): "Dr. Baba Saheb Ambedkar Jayanti",
+        date(2026, 5, 1): "Maharashtra Day",
+        date(2026, 5, 28): "Bakri Id",
+        date(2026, 6, 26): "Muharram",
+        date(2026, 8, 15): "Independence Day",
+        date(2026, 9, 14): "Ganesh Chaturthi",
+        date(2026, 10, 2): "Mahatma Gandhi Jayanti",
+        date(2026, 10, 20): "Dussehra",
+        date(2026, 11, 8): "Diwali Laxmi Pujan",
+        date(2026, 11, 10): "Diwali-Balipratipada",
+        date(2026, 11, 24): "Prakash Gurpurb Sri Guru Nanak Dev",
+        date(2026, 12, 25): "Christmas",
+    }
     
     IST = pytz.timezone('Asia/Kolkata')
 
     def __init__(self):
         """Initialize market calendar."""
         self.logger = logging.getLogger(__name__)
-        self.holidays = self.NSE_HOLIDAYS_2025.copy()
+        self.holidays = {**self.NSE_HOLIDAYS_2025, **self.NSE_HOLIDAYS_2026}
     
     def is_trading_day(self, check_date: date = None) -> bool:
         """

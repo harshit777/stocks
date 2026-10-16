@@ -333,6 +333,19 @@ print('ok')
     print('  ✓ status.json has positions, scores, P&L history, ML block and structured log')
 
 
+def test_market_calendar_knows_2026_nse_holidays():
+    from datetime import date
+    from src.utils.market_calendar import MarketCalendar
+    cal = MarketCalendar()
+    assert not cal.is_trading_day(date(2026, 10, 20)), "Dussehra"
+    assert not cal.is_trading_day(date(2026, 11, 10)), "Diwali-Balipratipada"
+    assert not cal.is_trading_day(date(2026, 12, 25)), "Christmas"
+    assert cal.is_trading_day(date(2026, 10, 19)) and cal.is_trading_day(date(2026, 10, 21))
+    assert not cal.is_trading_day(date(2026, 10, 17)), "Saturday"
+    assert cal.next_trading_day(date(2026, 10, 19)) == date(2026, 10, 21)   # skips Dussehra
+    print('  \u2713 2026 holidays recognised; Dussehra skipped, neighbours trade')
+
+
 if __name__ == '__main__':
     tests = [
         test_paper_broker_never_places_real_orders,
@@ -349,6 +362,7 @@ if __name__ == '__main__':
         test_paper_gates_can_approve_a_trade_and_live_stays_strict,
         test_broker_health_check_works_through_paper_broker,
         test_status_json_has_dashboard_fields,
+        test_market_calendar_knows_2026_nse_holidays,
     ]
     passed = failed = 0
     for t in tests:
