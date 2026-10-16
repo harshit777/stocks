@@ -57,6 +57,18 @@ logger = logging.getLogger(__name__)
 MODEL_DIR   = 'data/ml'
 MODEL_PATH  = os.path.join(MODEL_DIR, 'model.joblib')
 META_PATH   = os.path.join(MODEL_DIR, 'metadata.json')
+
+# Backtest sweep used to generate labelled trades. The entry gate (R/R, profit margin) is
+# fixed at levels a normal stock actually reaches: the Backtester defaults (3:1 and 2%)
+# find almost no setups on calm days, which left the trainer with no data at all.
+SWEEP_GRID = dict(
+    buy_threshold =[0.15, 0.20, 0.25],
+    sell_threshold=[0.75, 0.80, 0.85],
+    stop_loss_pct =[0.010, 0.015, 0.020],
+    target_pct    =[0.020, 0.025, 0.030],
+    risk_reward_min=[1.0],
+    min_profit_margin=[0.007],
+)
 LOG_PATH    = os.path.join(MODEL_DIR, 'training_log.txt')
 
 
@@ -159,7 +171,7 @@ class ModelTrainer:
                     5 + int(40 * symbols_done / len(symbols)),
                     f'Backtesting {symbol}...'
                 )
-                best_rpt, all_rpts = Backtester.parameter_sweep(candles, symbol)
+                best_rpt, all_rpts = Backtester.parameter_sweep(candles, symbol, grid=SWEEP_GRID)
                 bt_summaries.append({
                     'symbol': symbol,
                     'candles': len(candles),

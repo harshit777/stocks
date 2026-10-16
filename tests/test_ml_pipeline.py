@@ -152,6 +152,47 @@ def test_trainer_fetches_180_days_within_kite_100_day_limit():
     print("  \u2713 180-day lookback fetched in chunks under the 100-day limit")
 
 
+def test_trainer_finds_training_data_on_ordinary_stocks():
+    """With the Backtester's 3:1 / 2% defaults a calm stock yields ~0 trades -> 'No training data'."""
+    import tempfile
+    import numpy as np
+    from datetime import datetime, timedelta
+    import src.ml.model_trainer as mt
+
+    def gen(seed, vol=0.012, days=180):
+        rng = np.random.default_rng(seed); out = []; px = 500.0
+        d = (datetime.now() - timedelta(days=days)).replace(hour=9, minute=15, second=0, microsecond=0)
+        while d < datetime.now():
+            d += timedelta(days=1)
+            if d.weekday() >= 5:
+                continue
+            bv = vol / np.sqrt(75)
+            for k in range(75):
+                o = px; px *= 1 + rng.normal(0, bv); c = px
+                out.append({'date': d + timedelta(minutes=5 * k), 'open': o,
+                            'high': max(o, c) * (1 + abs(rng.normal(0, bv / 2))),
+                            'low': min(o, c) * (1 - abs(rng.normal(0, bv / 2))),
+                            'close': c, 'volume': int(rng.integers(10_000, 100_000))})
+        return out
+
+    class T:
+        data = {}
+
+        def get_historical_data(self, symbol, from_date, to_date, interval):
+            c = T.data.setdefault(symbol, gen(abs(hash(symbol)) % 9999))
+            return [x for x in c if from_date <= x['date'] <= to_date]
+
+    old = (mt.MODEL_PATH, mt.META_PATH)
+    d = tempfile.mkdtemp()
+    mt.MODEL_PATH, mt.META_PATH = d + '/m.pkl', d + '/meta.json'
+    try:
+        meta = mt.ModelTrainer(T()).run(symbols=list('ABCDEFGHIJ'), lookback_days=180)
+    finally:
+        mt.MODEL_PATH, mt.META_PATH = old
+    assert meta['n_samples'] >= 30, meta['n_samples']
+    print(f"  \u2713 trainer produced {meta['n_samples']} samples on ordinary stocks")
+
+
 if __name__ == '__main__':
     tests = [
         test_feature_names_match_n_features,
@@ -161,6 +202,7 @@ if __name__ == '__main__':
         test_load_model_no_file,
         test_from_backtester_arrays,
         test_trainer_fetches_180_days_within_kite_100_day_limit,
+        test_trainer_finds_training_data_on_ordinary_stocks,
     ]
     passed = 0
     failed = 0
