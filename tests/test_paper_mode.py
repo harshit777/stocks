@@ -346,6 +346,54 @@ def test_market_calendar_knows_2026_nse_holidays():
     print('  \u2713 2026 holidays recognised; Dussehra skipped, neighbours trade')
 
 
+def test_paper_capital_compounds_net_of_costs_and_live_stays_capped():
+    from datetime import date
+    from src.utils.capital_manager import CapitalRecoveryManager
+
+    def day(mgr_dir, growth, pnl, d):
+        m = CapitalRecoveryManager(10_000, data_dir=mgr_dir, allow_growth=growth)
+        start = m.get_available_capital()
+        m.history['daily_records'] = [r for r in m.history['daily_records'] if r['date'] != d]
+        # simulate "today" being `d` by writing the record the way record_day_end does
+        m.history['daily_records'].append({'date': d, 'starting_capital': start,
+                                           'ending_capital': max(0, start + pnl), 'daily_pnl': pnl})
+        m._save_history()
+        return start, CapitalRecoveryManager(10_000, data_dir=mgr_dir, allow_growth=growth).get_available_capital()
+
+    with tempfile.TemporaryDirectory() as d:        # paper: wins add, losses cut, compounding
+        s1, nxt = day(d, True, +200.0, '2000-01-01'); assert (s1, nxt) == (10_000, 10_200), (s1, nxt)
+        s2, nxt = day(d, True, -500.0, '2000-01-02'); assert (s2, nxt) == (10_200, 9_700), (s2, nxt)
+        s3, nxt = day(d, True, +1_000.0, '2000-01-03'); assert (s3, nxt) == (9_700, 10_700), (s3, nxt)
+    with tempfile.TemporaryDirectory() as d:        # live: profit never raises the budget above the cap
+        s1, nxt = day(d, False, +200.0, '2000-01-01'); assert nxt == 10_000, nxt
+        s2, nxt = day(d, False, -500.0, '2000-01-02'); assert nxt == 9_500, nxt
+    print('  \u2713 paper compounds (+200, -500, +1000 -> 10,700); live is capped at the starting budget')
+
+
+def test_day_end_books_net_pnl_after_charges():
+    from src.agents.post_trade_agent import PostTradeAgent
+    from src.utils.capital_manager import CapitalRecoveryManager
+
+    class _SE:
+        def record_entry(self, *a): pass
+        def record_trade_outcome(self, **kw): pass
+        def save_models(self): pass
+
+    with tempfile.TemporaryDirectory() as d:
+        cm = CapitalRecoveryManager(10_000, data_dir=d + '/cap', allow_growth=True)
+        pta = PostTradeAgent(capital_manager=cm, signal_engine=_SE(), data_dir=d)
+        pta.start_day(10_000.0)
+        pta.on_fill('PNB', 'BUY', 10, 100.0, None)
+        pta.on_fill('PNB', 'SELL', 10, 102.0, 20.0)         # gross +20
+        pta.end_day()
+        rec = cm.history['daily_records'][-1]
+        costs = paper_report.round_trips(pta.trade_log)[0]['costs']
+        assert 0 < costs < 20
+        assert abs(rec['daily_pnl'] - (20.0 - costs)) < 0.01, rec
+        assert abs(rec['ending_capital'] - (10_000 + 20.0 - costs)) < 0.01
+    print(f'  \u2713 day end books net P&L (gross 20.00 - charges {costs:.2f}), not gross')
+
+
 if __name__ == '__main__':
     tests = [
         test_paper_broker_never_places_real_orders,
@@ -363,6 +411,8 @@ if __name__ == '__main__':
         test_broker_health_check_works_through_paper_broker,
         test_status_json_has_dashboard_fields,
         test_market_calendar_knows_2026_nse_holidays,
+        test_paper_capital_compounds_net_of_costs_and_live_stays_capped,
+        test_day_end_books_net_pnl_after_charges,
     ]
     passed = failed = 0
     for t in tests:

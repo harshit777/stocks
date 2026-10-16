@@ -211,12 +211,13 @@ def main():
         if done >= PAPER_MAX_DAYS:
             logger.info(f"Paper-trading period finished ({done}/{PAPER_MAX_DAYS} days). Exiting.")
             return
+        # Starting balance only: after day 1 the balance compounds (profits added, losses cut)
         max_initial_capital = min(float(os.getenv('PAPER_CAPITAL', '10000')), LIVE_CAPITAL_CEILING)
-        max_daily_loss      = max_initial_capital * 0.10
+        max_daily_loss      = max_initial_capital * 0.10    # re-based on each day's balance below
         logger.info("=" * 70)
         logger.info(f"📝 PAPER TRADING — simulated fills, no real orders (day {done + 1} of {PAPER_MAX_DAYS})")
-        logger.info(f"   Virtual capital: ₹{max_initial_capital:,.0f} | Max loss: ₹{max_daily_loss:,.0f}"
-                    f" | Shorts: {'on' if ENABLE_SHORTS else 'off'}")
+        logger.info(f"   Starting capital: ₹{max_initial_capital:,.0f} (carried forward net of costs) | "
+                    f"Max loss: 10% of the day's capital | Shorts: {'on' if ENABLE_SHORTS else 'off'}")
         logger.info("=" * 70)
     else:
         # Hard ceiling: never trade more than ₹10,000 live, whatever the env says.
@@ -262,8 +263,12 @@ def main():
     capital_manager = CapitalRecoveryManager(
         max_initial_capital=max_initial_capital,
         data_dir=f'{DATA_ROOT}/capital',
+        allow_growth=PAPER,     # paper compounds like a real account; live stays capped
     )
     available_capital = capital_manager.get_available_capital()
+    if PAPER:
+        max_daily_loss = available_capital * 0.10
+        logger.info(f"   Today's loss limit: ₹{max_daily_loss:,.2f}")
     recovery = capital_manager.get_recovery_status()
     logger.info(f"✓ Capital today: ₹{available_capital:,.2f} | {recovery['message']}")
 

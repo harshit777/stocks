@@ -26,15 +26,19 @@ class CapitalRecoveryManager:
     4. Track capital history for analysis
     """
     
-    def __init__(self, max_initial_capital: float, data_dir: str = 'data/capital'):
+    def __init__(self, max_initial_capital: float, data_dir: str = 'data/capital',
+                 allow_growth: bool = False):
         """
         Initialize capital recovery manager.
         
         Args:
-            max_initial_capital: Maximum capital available (your ₹1,000 limit)
+            max_initial_capital: Starting capital (and, unless allow_growth, the ceiling)
             data_dir: Directory to store capital history
+            allow_growth: Carry profits forward too (compounding) instead of clipping
+                          the next day's capital back to max_initial_capital
         """
         self.max_initial_capital = max_initial_capital
+        self.allow_growth = allow_growth
         self.data_dir = data_dir
         self.capital_file = os.path.join(data_dir, 'capital_history.json')
         self.logger = logging.getLogger(__name__)
@@ -115,8 +119,9 @@ class CapitalRecoveryManager:
         last_record = self.history['daily_records'][-1]
         last_ending_capital = last_record.get('ending_capital', self.max_initial_capital)
         
-        # Never exceed max initial capital (recovery cap)
-        available = min(last_ending_capital, self.max_initial_capital)
+        # Never exceed max initial capital (recovery cap) unless compounding is on
+        available = (last_ending_capital if self.allow_growth
+                     else min(last_ending_capital, self.max_initial_capital))
         
         self.logger.info(
             f"Calculated available capital from last day: "
@@ -196,11 +201,12 @@ class CapitalRecoveryManager:
             self.logger.warning(f"Tomorrow's Budget: ₹{ending_capital:,.2f}")
         elif ending_capital > self.current_available_capital:
             gain = ending_capital - self.current_available_capital
-            capped_capital = min(ending_capital, self.max_initial_capital)
+            capped_capital = (ending_capital if self.allow_growth
+                              else min(ending_capital, self.max_initial_capital))
             recovery = capped_capital - self.current_available_capital
-            self.logger.info(f"✅ Capital Recovered: +₹{recovery:.2f}")
+            self.logger.info(f"✅ Capital {'Grew' if self.allow_growth else 'Recovered'}: +₹{recovery:.2f}")
             self.logger.info(f"Tomorrow's Budget: ₹{capped_capital:,.2f}")
-            if ending_capital > self.max_initial_capital:
+            if not self.allow_growth and ending_capital > self.max_initial_capital:
                 excess = ending_capital - self.max_initial_capital
                 self.logger.info(f"💡 Capital capped at max limit (excess: ₹{excess:.2f})")
         

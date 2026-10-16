@@ -152,9 +152,19 @@ class PostTradeAgent:
         self.logger.info(f"Max Drawdown:     ₹{self.max_drawdown:.2f}")
         self.logger.info("=" * 70)
 
+        # Capital moves by what we'd actually keep: P&L minus brokerage, STT and other charges
+        costs = 0.0
+        try:
+            from ..utils.paper_report import round_trips
+            costs = sum(t['costs'] for t in round_trips(self.trade_log))
+        except Exception as e:
+            self.logger.warning(f"PostTradeAgent: cost calculation failed, using gross P&L: {e}")
+        net_pnl = self.daily_pnl - costs
+        self.logger.info(f"Charges:          ₹{costs:.2f} → net P&L ₹{net_pnl:+,.2f}")
+
         # Record in capital recovery manager
         self.capital_manager.record_day_end(
-            daily_pnl=self.daily_pnl,
+            daily_pnl=net_pnl,
             trades_count=self.daily_trades,
             used_capital=used_capital,
         )
