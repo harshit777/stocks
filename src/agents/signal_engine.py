@@ -68,6 +68,7 @@ class SignalEngine:
         self.trader = trader
         self.symbols = symbols
         self.confidence_threshold = confidence_threshold
+        self.confidence_adjuster = None     # optional callable(symbol, signal) -> float
         self.logger = logging.getLogger(__name__)
 
         # Base strategy handles intraday high/low breakout logic
@@ -243,6 +244,13 @@ class SignalEngine:
         }
 
         signal, confidence = self._combine(scores)
+
+        # Learned news-tone nudge (bounded, and zero until enough evidence exists)
+        if signal and self.confidence_adjuster is not None:
+            try:
+                confidence += self.confidence_adjuster(symbol, signal)
+            except Exception:
+                pass
 
         if signal and confidence >= self.confidence_threshold:
             # Psychology guard — FOMO prevention, cooldown, daily limits

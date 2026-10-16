@@ -33,6 +33,9 @@ rows = [{k: v for k, v in r.items() if k != 'round_trips'} for r in load_reports
 json.dump(rows, open(sys.argv[1], 'w'))
 PY
   fi
+  # Latest market & news analysis (what moved our stocks, and why)
+  latest="$(ls -1 data/paper/analysis/*.json 2>/dev/null | grep -v history.json | sort | tail -1)"
+  [ -n "$latest" ] && cp "$latest" "$work/analysis.json"
   touch "$work/.nojekyll"
   (
     cd "$work" || exit 0

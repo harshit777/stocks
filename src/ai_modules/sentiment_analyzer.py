@@ -27,13 +27,15 @@ class SentimentAnalyzer:
         self.positive_keywords = {
             'bullish', 'rally', 'surge', 'gain', 'profit', 'growth', 'strong',
             'buy', 'upgrade', 'positive', 'beat', 'outperform', 'boom',
-            'recovery', 'optimistic', 'breakout', 'soar', 'jump', 'climb'
+            'recovery', 'optimistic', 'breakout', 'soar', 'jump', 'climb',
+            'rise', 'higher', 'record', 'win', 'dividend', 'bonus', 'buyback', 'approval', 'rebound'
         }
         
         self.negative_keywords = {
             'bearish', 'decline', 'loss', 'weak', 'sell', 'downgrade', 'negative',
             'miss', 'underperform', 'crash', 'recession', 'pessimistic',
-            'plunge', 'drop', 'fall', 'tumble', 'slump', 'fear', 'concern'
+            'plunge', 'drop', 'fall', 'tumble', 'slump', 'fear', 'concern',
+            'lower', 'cut', 'warn', 'probe', 'fraud', 'penalty', 'selloff', 'lose', 'worry', 'slip', 'sink'
         }
         
         # Sentiment history for each symbol
@@ -44,6 +46,20 @@ class SentimentAnalyzer:
         
         self.logger.info("Sentiment Analyzer initialized")
     
+    @staticmethod
+    def _hit(word: str, vocab) -> bool:
+        """Match a word or a simple inflection of it (slumps, surged, dropped, gaining)."""
+        if word in vocab:
+            return True
+        for suf in ('ing', 'ed', 'es', 's'):
+            if word.endswith(suf) and len(word) > len(suf) + 2:
+                stem = word[:-len(suf)]
+                if stem in vocab or stem + 'e' in vocab:
+                    return True
+                if len(stem) > 2 and stem[-1] == stem[-2] and stem[:-1] in vocab:   # dropped -> drop
+                    return True
+        return False
+
     def analyze_text(self, text: str) -> Dict[str, float]:
         """
         Analyze sentiment from text using keyword matching.
@@ -57,12 +73,13 @@ class SentimentAnalyzer:
         if not text:
             return {'score': 0.0, 'confidence': 0.0}
         
-        text_lower = text.lower()
+        # "profit-taking" / "profit booking" is selling pressure, not profit
+        text_lower = re.sub(r'profit[- ](taking|booking)', 'selloff', text.lower())
         words = re.findall(r'\b\w+\b', text_lower)
         
         # Count positive and negative keywords
-        positive_count = sum(1 for word in words if word in self.positive_keywords)
-        negative_count = sum(1 for word in words if word in self.negative_keywords)
+        positive_count = sum(1 for word in words if self._hit(word, self.positive_keywords))
+        negative_count = sum(1 for word in words if self._hit(word, self.negative_keywords))
         
         total_sentiment_words = positive_count + negative_count
         

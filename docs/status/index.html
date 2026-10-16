@@ -98,11 +98,26 @@ tbody tr:last-child td{border-bottom:none}
 .feat-val{font-size:10px;min-width:36px;text-align:right;font-variant-numeric:tabular-nums}
 
 .history{grid-column:1/-1}
+.news{grid-column:1/-1}
+.news-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.news-grid>div{padding:12px 14px}
+.news-grid>div+div{border-left:1px solid var(--border)}
+.tone{display:inline-block;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;background:var(--surface2);color:var(--muted)}
+.tone.positive{background:var(--green-dim);color:var(--green)}
+.tone.negative{background:var(--red-dim);color:var(--red)}
+.hl{font-size:12px;line-height:1.5;padding:4px 0;border-bottom:1px solid var(--border)}
+.hl:last-child{border-bottom:none}
+.hl small{color:var(--muted)}
+.why{font-size:12px;line-height:1.5;padding:5px 0;border-bottom:1px solid var(--border)}
+.why:last-child{border-bottom:none}
+.sub{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 6px}
 
 @media(max-width:1000px){
   .main{grid-template-columns:1fr 1fr}
   .stat-strip{grid-template-columns:repeat(3,1fr)}
   .positions,.watchlist{grid-column:1/-1}
+  .news-grid{grid-template-columns:1fr}
+  .news-grid>div+div{border-left:none;border-top:1px solid var(--border)}
   .pipeline{flex-wrap:wrap}
   .agent-box{flex:1 1 30%;border-right:1px solid var(--border);border-radius:6px;margin:2px}
   .ml-panel{grid-template-columns:1fr}
@@ -181,6 +196,7 @@ tbody tr:last-child td{border-bottom:none}
     <div class="agent-box"><div class="agent-num">Agent 4</div><div class="agent-name">ExecutionAgent</div><div class="agent-desc">Single position book. Only place that places orders.</div><div class="agent-status" id="ag4"></div></div>
     <div class="agent-box"><div class="agent-num">Agent 5</div><div class="agent-name">PositionMonitor</div><div class="agent-desc">Stop-loss, trailing stop, target, 90-min time exit</div><div class="agent-status" id="ag5"></div></div>
     <div class="agent-box"><div class="agent-num">Agent 6</div><div class="agent-name">PostTradeAgent</div><div class="agent-desc">EOD accounting, capital recovery, AI model save</div><div class="agent-status" id="ag6"></div></div>
+    <div class="agent-box"><div class="agent-num">Agent 7</div><div class="agent-name">MarketAnalyst</div><div class="agent-desc">News tone, why stocks moved, daily report, learns news reliability</div><div class="agent-status" id="ag7"></div></div>
   </div>
 
   <div class="card ml-panel">
@@ -236,6 +252,24 @@ tbody tr:last-child td{border-bottom:none}
         <tbody id="pos-body"><tr><td colspan="8" class="empty">No open positions</td></tr></tbody>
       </table>
     </div>
+  </div>
+
+  <div class="card news">
+    <div class="card-header">
+      <span class="card-title">Market &amp; News</span>
+      <span class="card-title" id="news-sub"></span>
+    </div>
+    <div class="news-grid">
+      <div>
+        <p class="sub">Today &mdash; morning news read before the move</p>
+        <div id="news-today"><div class="empty">Waiting for the market to open…</div></div>
+      </div>
+      <div>
+        <p class="sub" id="why-title">Last analysed day &mdash; what moved the stocks</p>
+        <div id="news-why"><div class="empty">The first report appears after the first full session.</div></div>
+      </div>
+    </div>
+    <div style="padding:10px 14px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)" id="news-learn"></div>
   </div>
 
   <div class="card history">
@@ -403,6 +437,52 @@ function renderState(d) {
   if (atBottom) box.scrollTop = box.scrollHeight;
 }
 
+function toneTag(label, score) {
+  const l = label || 'none';
+  return `<span class="tone ${esc(l)}">${esc(l)}${score != null && l !== 'none' ? ' ' + (score >= 0 ? '+' : '') + Number(score).toFixed(2) : ''}</span>`;
+}
+
+function renderNews(d) {
+  const a = d.analysis;
+  if (!a || !a.market_tone) return;
+  const mt = a.market_tone;
+  $('ag7').className = 'agent-status ok';
+  $('news-sub').textContent = (mt.n || 0) + ' market headlines';
+  const hl = (a.headlines || []).map(h => `<div class="hl">${esc(h.title)} <small>${esc(h.source)}</small> ${toneTag(h.score > 0.2 ? 'positive' : h.score < -0.2 ? 'negative' : 'neutral')}</div>`).join('');
+  const stocks = Object.entries(a.stocks || {}).map(([s, t]) =>
+    `<div class="hl"><b>${esc(s)}</b> ${toneTag(t.label, t.score)} <small>${esc(t.top || 'no notable news')}</small></div>`).join('');
+  $('news-today').innerHTML = `<div style="margin-bottom:8px">Market news tone: ${toneTag(mt.label, mt.score)}</div>` +
+    hl + (stocks ? `<p class="sub" style="margin-top:12px">Our watchlist</p>` + stocks : '');
+  const ls = a.learning;
+  if (ls) renderLearning(ls);
+}
+
+function renderLearning(ls) {
+  $('news-learn').textContent = ls.adjustment_active
+    ? `Learning: morning news tone predicted the day's direction ${(ls.accuracy * 100).toFixed(0)}% of the time over ${ls.n_decisive} clear cases; it now nudges signal confidence by at most \u00b10.10.`
+    : `Learning: ${ls.n_obs} stock-days observed, ${ls.n_decisive} with a clear tone and move. The news-based confidence nudge stays off until ${ls.needs_more} more clear cases.` +
+      (ls.accuracy != null ? ` So far the tone was right ${(ls.accuracy * 100).toFixed(0)}% of the time.` : '');
+}
+
+function renderAnalysis(r) {
+  if (!r || !r.date) return;
+  const m = r.market || {};
+  const pct = v => v == null ? 'n/a' : (v >= 0 ? '+' : '') + Number(v).toFixed(2) + '%';
+  const cls = v => v > 0 ? 'up' : v < 0 ? 'dn' : 'nu';
+  $('why-title').textContent = 'Last analysed day \u2014 ' + r.date;
+  let h = `<div style="margin-bottom:8px">Nifty <b class="${cls(m.nifty_pct)}">${pct(m.nifty_pct)}</b>` +
+    (m.vix != null ? ` &middot; VIX ${esc(m.vix)}` : '') + ` &middot; news ${toneTag((m.tone || {}).label, (m.tone || {}).score)}</div>`;
+  h += (r.stocks || []).map(s => `<div class="why"><b>${esc(s.symbol)}</b> <span class="${cls(s.day_pct)}">${pct(s.day_pct)}</span> &mdash; ${esc((s.drivers || []).join('; '))}</div>`).join('');
+  if ((r.trades || []).length) {
+    h += `<p class="sub" style="margin-top:12px">Stocks we traded</p>` + r.trades.map(t =>
+      `<div class="why"><b>${esc(t.symbol)}</b> <span class="${cls(t.net_pnl)}">${fmt(t.net_pnl)}</span> &mdash; ${esc((t.notes || []).join('; ') || 'no notable factors')}</div>`).join('');
+  } else {
+    h += `<p class="sub" style="margin-top:12px">Stocks we traded</p><div class="why" style="color:var(--muted)">No trades that day.</div>`;
+  }
+  $('news-why').innerHTML = h;
+  if (r.learning) renderLearning(r.learning);
+}
+
 function renderHistory(rows) {
   const done = rows.filter(r => r.complete);
   $('hist-count').textContent = done.length + ' day' + (done.length === 1 ? '' : 's') + ' counted';
@@ -427,8 +507,9 @@ async function getJSON(url) {
 }
 
 async function refresh() {
-  try { renderState(await getJSON('status.json')); }
+  try { const s = await getJSON('status.json'); renderState(s); renderNews(s); }
   catch (e) { $('status-label').textContent = 'No data yet'; }
+  try { renderAnalysis(await getJSON('analysis.json')); } catch (e) {}
   try { renderHistory(await getJSON('reports.json')); } catch (e) {}
 }
 

@@ -135,7 +135,7 @@ def _ml_block(signal_engine):
 
 
 def _write_status(state, iteration, risk_gate, post_trade, execution, trader,
-                  signals, watchlist, scanner=None, signal_engine=None):
+                  signals, watchlist, scanner=None, signal_engine=None, analyst=None):
     """Dump a snapshot for the read-only status page. Never raises."""
     try:
         positions = []
@@ -181,6 +181,7 @@ def _write_status(state, iteration, risk_gate, post_trade, execution, trader,
             'signals': {k: v for k, v in (signals or {}).items() if v},
             'pnl_history': list(_pnl_history),
             'ml': _ml_block(signal_engine),
+            'analysis': analyst.status() if analyst is not None else None,
             'log': list(_log_tail),
         }
         os.makedirs(os.path.dirname(STATUS_FILE), exist_ok=True)
@@ -242,6 +243,7 @@ def main():
     from src.agents.execution_agent  import ExecutionAgent
     from src.agents.position_monitor import PositionMonitor
     from src.agents.post_trade_agent import PostTradeAgent
+    from src.agents.market_analyst   import MarketAnalystAgent
     from src.kite_trader.ticker      import PositionTicker
 
     # ------------------------------------------------------------------ #
@@ -312,6 +314,10 @@ def main():
         max_hold_minutes=90,
     )
 
+    analyst = MarketAnalystAgent(trader, analysis_dir=f'{DATA_ROOT}/analysis',
+                                 clock=lambda: datetime.now(IST))
+    signal_engine.confidence_adjuster = analyst.adjust
+
     post_trade = PostTradeAgent(
         capital_manager=capital_manager,
         signal_engine=signal_engine,
@@ -337,6 +343,7 @@ def main():
     # 4. Wait for market open; do startup work when it opens              #
     # ------------------------------------------------------------------ #
     startup_done = False
+    market_cond: dict = {}
     squared_off  = False
     last_reconcile = None
     iteration = 0
@@ -375,7 +382,7 @@ def main():
                 logger.info(f"Market opens in {wait} min. Sleeping...")
                 _write_status('waiting', iteration, risk_gate, post_trade,
                               execution, trader, signals, signal_engine.symbols,
-                              scanner, signal_engine)
+                              scanner, signal_engine, analyst)
                 _sleep(min(wait * 60, 60))
                 continue
 
@@ -387,10 +394,10 @@ def main():
 
             # ---- Startup (runs once at market open) ---- #
             if not startup_done:
-                _startup(
+                market_cond = _startup(
                     scanner, signal_engine, risk_gate,
                     execution, post_trade, position_monitor,
-                    available_capital, trader,
+                    available_capital, trader, analyst,
                 )
                 ticker.start()   # WebSocket up after startup so credentials are valid
                 startup_done = True
@@ -509,9 +516,11 @@ def main():
             if iteration % 5 == 0:
                 signal_engine.save_models()
 
+            analyst.maybe_refresh()
+
             _write_status('running', iteration, risk_gate, post_trade,
                           execution, trader, signals, signal_engine.symbols,
-                          scanner, signal_engine)
+                          scanner, signal_engine, analyst)
             _sleep(CHECK_INTERVAL)
 
     except KeyboardInterrupt:
@@ -531,6 +540,10 @@ def main():
             if startup_done:
                 _end_of_day(post_trade, execution, risk_gate,
                             signal_engine, position_monitor)
+                analyst.end_day(post_trade.trade_log,
+                                vix=market_cond.get('vix'), regime=market_cond.get('regime'),
+                                vol_ratios={s['symbol']: s.get('vol_surge')
+                                            for s in scanner.get_last_scores()})
                 if PAPER:
                     # A day counts toward the paper-trading total only if it ran to
                     # square-off and was not a last-minute start.
@@ -544,7 +557,7 @@ def main():
             logger.error(f"Final cleanup error: {e}")
         _write_status('stopped' if _stop_requested() else 'ended', iteration,
                       risk_gate, post_trade, execution, trader, signals,
-                      signal_engine.symbols, scanner, signal_engine)
+                      signal_engine.symbols, scanner, signal_engine, analyst)
 
 
 # ------------------------------------------------------------------ #
@@ -552,7 +565,7 @@ def main():
 # ------------------------------------------------------------------ #
 
 def _startup(scanner, signal_engine, risk_gate, execution,
-             post_trade, position_monitor, available_capital, trader):
+             post_trade, position_monitor, available_capital, trader, analyst=None):
     """One-time startup sequence at market open."""
     logger.info("\n🚀 Market open — running startup sequence")
 
@@ -561,6 +574,10 @@ def _startup(scanner, signal_engine, risk_gate, execution,
     signal_engine.symbols = symbols
     signal_engine.base_strategy.symbols = symbols
     logger.info(f"✓ Watchlist: {', '.join(symbols)}")
+
+    # Read the news now, before the day's moves, so tone can't be hindsight
+    if analyst is not None:
+        analyst.start_day(symbols)
 
     # 2. Seed historical candles so multi-timeframe analysis is real
     logger.info("Seeding historical candle data...")
@@ -591,6 +608,7 @@ def _startup(scanner, signal_engine, risk_gate, execution,
     )
 
     logger.info("✓ Startup complete")
+    return cond
 
 
 def _end_of_day(post_trade, execution, risk_gate, signal_engine, position_monitor):
