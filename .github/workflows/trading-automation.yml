@@ -54,6 +54,7 @@ jobs:
           ZERODHA_USER_ID: ${{ secrets.ZERODHA_USER_ID }}
           ZERODHA_PASSWORD: ${{ secrets.ZERODHA_PASSWORD }}
           ZERODHA_PIN: ${{ secrets.ZERODHA_PIN }}
+          ZERODHA_TOTP_SECRET: ${{ secrets.ZERODHA_TOTP_SECRET }}
         run: |
           echo "KITE_API_KEY=${KITE_API_KEY}" >> .env
           echo "KITE_API_SECRET=${KITE_API_SECRET}" >> .env
@@ -61,6 +62,10 @@ jobs:
           echo "ZERODHA_USER_ID=${ZERODHA_USER_ID}" >> .env
           echo "ZERODHA_PASSWORD=${ZERODHA_PASSWORD}" >> .env
           echo "ZERODHA_PIN=${ZERODHA_PIN}" >> .env
+          echo "ZERODHA_TOTP_SECRET=${ZERODHA_TOTP_SECRET}" >> .env
+
+      - name: Refresh Kite access token (TOTP)
+        run: python3 kite_auth.py
 
       - name: Train AI models
         run: python3 scripts/train_ai.py
