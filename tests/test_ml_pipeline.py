@@ -127,6 +127,31 @@ def test_from_backtester_arrays():
     print(f"  ✓ from_backtester_arrays: matrix shape {X.shape}")
 
 
+def test_trainer_fetches_180_days_within_kite_100_day_limit():
+    """Kite rejects 5-minute requests longer than 100 days; the trainer must chunk."""
+    from datetime import datetime, timedelta
+    from src.ml.model_trainer import ModelTrainer
+
+    class Strict:
+        calls = []
+
+        def get_historical_data(self, symbol, from_date, to_date, interval):
+            Strict.calls.append((from_date, to_date))
+            if (to_date - from_date).days > 100:
+                return []                      # what Kite's error path returns
+            out, t = [], from_date
+            while t < to_date:
+                out.append({'date': t, 'open': 1, 'high': 1, 'low': 1, 'close': 1, 'volume': 1})
+                t += timedelta(days=1)
+            return out
+
+    candles = ModelTrainer(Strict())._fetch_candles('SBIN', 180)
+    assert len(Strict.calls) == 2 and all((b - a).days <= 100 for a, b in Strict.calls)
+    assert 175 <= len(candles) <= 182, len(candles)
+    assert len({c['date'] for c in candles}) == len(candles)      # no duplicates
+    print("  \u2713 180-day lookback fetched in chunks under the 100-day limit")
+
+
 if __name__ == '__main__':
     tests = [
         test_feature_names_match_n_features,
@@ -135,6 +160,7 @@ if __name__ == '__main__':
         test_online_model_partial_fit,
         test_load_model_no_file,
         test_from_backtester_arrays,
+        test_trainer_fetches_180_days_within_kite_100_day_limit,
     ]
     passed = 0
     failed = 0

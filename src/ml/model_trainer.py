@@ -293,14 +293,27 @@ class ModelTrainer:
     # Helpers
     # ------------------------------------------------------------------
 
+    # Kite rejects 5-minute requests spanning more than 100 days
+    _MAX_CHUNK_DAYS = 90
+
     def _fetch_candles(self, symbol: str, days: int) -> List[Dict]:
-        """Fetch 5m historical candles from Kite."""
-        to_date   = datetime.now()
-        from_date = to_date - timedelta(days=days)
-        candles   = self.trader.get_historical_data(
-            symbol=symbol, from_date=from_date,
-            to_date=to_date, interval='5minute',
-        )
+        """Fetch 5m historical candles from Kite, in chunks under its 100-day limit."""
+        end = datetime.now()
+        start = end - timedelta(days=days)
+        candles: List[Dict] = []
+        seen = set()
+        chunk_start = start
+        while chunk_start < end:
+            chunk_end = min(chunk_start + timedelta(days=self._MAX_CHUNK_DAYS), end)
+            for c in self.trader.get_historical_data(
+                    symbol=symbol, from_date=chunk_start,
+                    to_date=chunk_end, interval='5minute'):
+                key = c.get('date')
+                if key in seen:           # chunk boundaries can overlap by one candle
+                    continue
+                seen.add(key)
+                candles.append(c)
+            chunk_start = chunk_end
         self._log(f"  Fetched {len(candles)} 5m candles for {symbol}")
         return candles
 
