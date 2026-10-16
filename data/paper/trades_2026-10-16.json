@@ -1,0 +1,34 @@
+[
+  {
+    "timestamp": "2026-10-16T05:17:38.652785",
+    "symbol": "FEDERALBNK",
+    "transaction_type": "BUY",
+    "quantity": 4,
+    "fill_price": 330.09,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-16T06:47:41.130619",
+    "symbol": "FEDERALBNK",
+    "transaction_type": "SELL",
+    "quantity": 4,
+    "fill_price": 330.11,
+    "pnl": 0.08000000000015461
+  },
+  {
+    "timestamp": "2026-10-16T09:07:46.721620",
+    "symbol": "FEDERALBNK",
+    "transaction_type": "BUY",
+    "quantity": 4,
+    "fill_price": 332.34,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-16T09:30:22.301143",
+    "symbol": "FEDERALBNK",
+    "transaction_type": "SELL",
+    "quantity": 4,
+    "fill_price": 334.84,
+    "pnl": 10.0
+  }
+]
