@@ -18,7 +18,7 @@ Square-off:   3:20 PM — all positions closed before broker auto-squareoff.
 Modes (TRADING_MODE):
   paper (default)  Simulated fills via PaperBroker. No order ever reaches Zerodha.
                    Writes a daily report to data/paper/reports/. PAPER_CAPITAL sets
-                   the virtual capital (default 10000); PAPER_MAX_DAYS caps the run.
+                   the virtual capital (default 50000); PAPER_MAX_DAYS caps the run.
   live             Real money. Refuses to start unless LIVE_TRADING_APPROVED=yes.
 
 Short selling is OFF unless ENABLE_SHORTS=true (ExecutionAgent does not yet track
@@ -51,6 +51,14 @@ PAPER      = MODE == 'paper'
 DATA_ROOT  = 'data/paper' if PAPER else 'data'
 ENABLE_SHORTS   = os.getenv('ENABLE_SHORTS', 'false').lower() == 'true'
 PAPER_MAX_DAYS  = int(os.getenv('PAPER_MAX_DAYS', '10'))
+
+# Entry-quality gates. The exit rules are a fixed +2.5% target / -1.5% stop, i.e. at
+# best 1.67:1, so a 3:1 minimum in RiskGate rejects every trade. Paper mode uses
+# gates that can actually pass, so the 10-day run produces a win rate; live keeps
+# the strict original values until they are reviewed.
+MIN_RISK_REWARD          = 1.5 if PAPER else 3.0   # RiskGate
+SIGNAL_RISK_REWARD       = 2.0 if PAPER else 3.0   # SignalEngine: day-high target vs stop
+SIGNAL_MIN_PROFIT_MARGIN = 0.01 if PAPER else 0.02
 
 os.makedirs('data/logs', exist_ok=True)
 logging.basicConfig(
@@ -200,7 +208,7 @@ def main():
         if done >= PAPER_MAX_DAYS:
             logger.info(f"Paper-trading period finished ({done}/{PAPER_MAX_DAYS} days). Exiting.")
             return
-        max_initial_capital = float(os.getenv('PAPER_CAPITAL', '10000'))
+        max_initial_capital = float(os.getenv('PAPER_CAPITAL', '50000'))
         max_daily_loss      = max_initial_capital * 0.10
         logger.info("=" * 70)
         logger.info(f"📝 PAPER TRADING — simulated fills, no real orders (day {done + 1} of {PAPER_MAX_DAYS})")
@@ -269,7 +277,7 @@ def main():
         max_concurrent_positions=4,
         stop_loss_pct=0.015,
         target_pct=0.025,           # kept in sync with PositionMonitor.target_pct
-        min_risk_reward=3.0,
+        min_risk_reward=MIN_RISK_REWARD,
         risk_per_trade_pct=0.01,    # risk 1% of capital per trade
     )
 
@@ -279,10 +287,10 @@ def main():
     signal_engine = SignalEngine(
         trader=trader,
         symbols=[],         # filled after scan
-        min_profit_margin=0.02,
+        min_profit_margin=SIGNAL_MIN_PROFIT_MARGIN,
         buy_threshold=0.20,
         sell_threshold=0.80,
-        risk_reward_ratio=3.0,
+        risk_reward_ratio=SIGNAL_RISK_REWARD,
         max_position_pct=0.15,
         stop_loss_pct=0.015,
         confidence_threshold=0.55,

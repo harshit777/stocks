@@ -38,7 +38,7 @@ concurrency:
 
 env:
   PAPER_MAX_DAYS: ${{ vars.PAPER_MAX_DAYS || '10' }}
-  PAPER_CAPITAL: ${{ vars.PAPER_CAPITAL || '10000' }}
+  PAPER_CAPITAL: ${{ vars.PAPER_CAPITAL || '50000' }}
 
 jobs:
   session:

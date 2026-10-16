@@ -209,6 +209,35 @@ def test_post_trade_agent_snapshots_entry_on_buy():
     print('  ✓ BUY fill triggers the entry snapshot, SELL does not')
 
 
+def test_paper_gates_can_approve_a_trade_and_live_stays_strict():
+    """Exit rules are +2.5% / -1.5% (best 1.67:1). A 3:1 RiskGate minimum rejects everything."""
+    from src.agents.risk_gate import RiskGate
+
+    def gate(rr):
+        g = RiskGate(max_capital=50000, max_daily_loss=5000, max_position_pct=0.15,
+                     max_concurrent_positions=4, stop_loss_pct=0.015, target_pct=0.025,
+                     min_risk_reward=rr, risk_per_trade_pct=0.01)
+        g.reset_daily(50000)
+        return g
+
+    code = lambda mode: ("import sys,importlib.util as u;sys.path.insert(0,%r);"
+                         "s=u.spec_from_file_location('v2',%r);m=u.module_from_spec(s);s.loader.exec_module(m);"
+                         "print(m.MIN_RISK_REWARD, m.SIGNAL_RISK_REWARD, m.SIGNAL_MIN_PROFIT_MARGIN)"
+                         ) % (ROOT, os.path.join(ROOT, 'scripts', 'live_trade_v2.py'))
+    out = {}
+    for mode in ('paper', 'live'):
+        p = subprocess.run([sys.executable, '-c', code(mode)], env=dict(os.environ, TRADING_MODE=mode),
+                           cwd=tempfile.mkdtemp(), capture_output=True, text=True, timeout=60)
+        out[mode] = [float(x) for x in p.stdout.strip().splitlines()[-1].split()]
+    assert out['live'] == [3.0, 3.0, 0.02], out
+    assert out['paper'][0] <= 1.5
+
+    ok = gate(out['paper'][0]).evaluate('PNB', 'BUY', 105.0, 108.0, 102.0)
+    assert ok.approved and ok.quantity >= 1, ok
+    assert not gate(3.0).evaluate('PNB', 'BUY', 105.0, 108.0, 102.0).approved
+    print('  ✓ paper gates approve a normal trade; live keeps 3:1 / 2%')
+
+
 def test_broker_health_check_works_through_paper_broker():
     """BrokerHealthMonitor probes get_profile(); KiteTrader must have it and PaperBroker must forward it."""
     from src.kite_trader.trader import KiteTrader
@@ -284,6 +313,7 @@ if __name__ == '__main__':
         test_online_model_learns_from_entry_features_and_net_label,
         test_online_model_skips_positions_it_did_not_open,
         test_post_trade_agent_snapshots_entry_on_buy,
+        test_paper_gates_can_approve_a_trade_and_live_stays_strict,
         test_broker_health_check_works_through_paper_broker,
         test_status_json_has_dashboard_fields,
     ]
