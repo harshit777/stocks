@@ -18,7 +18,8 @@ Square-off:   3:20 PM — all positions closed before broker auto-squareoff.
 Modes (TRADING_MODE):
   paper (default)  Simulated fills via PaperBroker. No order ever reaches Zerodha.
                    Writes a daily report to data/paper/reports/. PAPER_CAPITAL sets
-                   the virtual capital (default 50000); PAPER_MAX_DAYS caps the run.
+                   the virtual capital (default 10000, the most live will use);
+                   PAPER_MAX_DAYS caps the run.
   live             Real money. Refuses to start unless LIVE_TRADING_APPROVED=yes.
 
 Short selling is OFF unless ENABLE_SHORTS=true (ExecutionAgent does not yet track
@@ -51,6 +52,7 @@ PAPER      = MODE == 'paper'
 DATA_ROOT  = 'data/paper' if PAPER else 'data'
 ENABLE_SHORTS   = os.getenv('ENABLE_SHORTS', 'false').lower() == 'true'
 PAPER_MAX_DAYS  = int(os.getenv('PAPER_MAX_DAYS', '10'))
+LIVE_CAPITAL_CEILING = 10_000.0   # owner's limit for live money
 
 # Entry-quality gates. The exit rules are a fixed +2.5% target / -1.5% stop, i.e. at
 # best 1.67:1, so a 3:1 minimum in RiskGate rejects every trade. Paper mode uses
@@ -208,7 +210,7 @@ def main():
         if done >= PAPER_MAX_DAYS:
             logger.info(f"Paper-trading period finished ({done}/{PAPER_MAX_DAYS} days). Exiting.")
             return
-        max_initial_capital = float(os.getenv('PAPER_CAPITAL', '50000'))
+        max_initial_capital = min(float(os.getenv('PAPER_CAPITAL', '10000')), LIVE_CAPITAL_CEILING)
         max_daily_loss      = max_initial_capital * 0.10
         logger.info("=" * 70)
         logger.info(f"📝 PAPER TRADING — simulated fills, no real orders (day {done + 1} of {PAPER_MAX_DAYS})")
@@ -216,7 +218,8 @@ def main():
                     f" | Shorts: {'on' if ENABLE_SHORTS else 'off'}")
         logger.info("=" * 70)
     else:
-        max_initial_capital = float(os.getenv('MAX_LIVE_CAPITAL', '1000'))
+        # Hard ceiling: never trade more than ₹10,000 live, whatever the env says.
+        max_initial_capital = min(float(os.getenv('MAX_LIVE_CAPITAL', '1000')), LIVE_CAPITAL_CEILING)
         max_daily_loss      = float(os.getenv('MAX_DAILY_LOSS', str(max_initial_capital * 0.10)))
         logger.info("=" * 70)
         logger.info("⚠️  LIVE INTRADAY TRADING — REAL MONEY")

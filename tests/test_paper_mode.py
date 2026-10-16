@@ -214,10 +214,10 @@ def test_paper_gates_can_approve_a_trade_and_live_stays_strict():
     from src.agents.risk_gate import RiskGate
 
     def gate(rr):
-        g = RiskGate(max_capital=50000, max_daily_loss=5000, max_position_pct=0.15,
+        g = RiskGate(max_capital=10000, max_daily_loss=1000, max_position_pct=0.15,
                      max_concurrent_positions=4, stop_loss_pct=0.015, target_pct=0.025,
                      min_risk_reward=rr, risk_per_trade_pct=0.01)
-        g.reset_daily(50000)
+        g.reset_daily(10000)
         return g
 
     code = lambda mode: ("import sys,importlib.util as u;sys.path.insert(0,%r);"
