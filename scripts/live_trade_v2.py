@@ -271,7 +271,9 @@ def main():
     # ------------------------------------------------------------------ #
     # 3. Agents                                                            #
     # ------------------------------------------------------------------ #
-    scanner = MarketScanner(trader, max_symbols=10, min_price=50.0, min_volume=500_000)
+    # Only shortlist stocks that fit our capital (>= 3 shares inside the 15% per-stock cap)
+    scanner = MarketScanner(trader, max_symbols=10, min_price=50.0, min_volume=500_000,
+                            capital=available_capital, max_position_pct=0.15, min_shares=3)
 
     risk_gate = RiskGate(
         max_capital=available_capital,

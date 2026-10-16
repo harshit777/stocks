@@ -209,6 +209,38 @@ def test_post_trade_agent_snapshots_entry_on_buy():
     print('  ✓ BUY fill triggers the entry snapshot, SELL does not')
 
 
+def test_scanner_skips_stocks_too_expensive_for_capital():
+    from src.agents.market_scanner import MarketScanner
+
+    prices = {'PNB': 105.0, 'WIPRO': 250.0, 'ITC': 450.0, 'SBIN': 800.0, 'INFY': 1500.0, 'TCS': 3500.0}
+
+    class _T:
+        def get_quote(self, syms):
+            return {f'NSE:{s}': {'last_price': p, 'volume': 5_000_000,
+                                 'ohlc': {'open': p, 'high': p, 'low': p, 'close': p}}
+                    for s, p in prices.items() if s in syms}
+
+    pool = list(prices)
+    capped = MarketScanner(_T(), candidate_pool=pool, capital=10000, max_position_pct=0.15, min_shares=3)
+    got = {c['symbol'] for c in capped._initial_filter()}
+    # 10000 * 15% / (3 * 1.003) = ~498.5 per share
+    assert 498 < capped.max_price < 499, capped.max_price
+    assert got == {'PNB', 'WIPRO', 'ITC'}, got
+
+    # every stock it keeps must actually pass the RiskGate sizing with >= 3 shares
+    from src.agents.risk_gate import RiskGate
+    for s in got:
+        g = RiskGate(max_capital=10000, max_daily_loss=1000, max_position_pct=0.15, max_concurrent_positions=4,
+                     stop_loss_pct=0.015, target_pct=0.025, min_risk_reward=1.5, risk_per_trade_pct=0.01)
+        g.reset_daily(10000)
+        d = g.evaluate(s, 'BUY', prices[s], prices[s] * 1.03, prices[s] * 0.98)
+        assert d.approved and d.quantity >= 3, (s, d)
+
+    off = MarketScanner(_T(), candidate_pool=pool)           # no capital -> filter disabled
+    assert {c['symbol'] for c in off._initial_filter()} == set(pool)
+    print('  ✓ scanner keeps only stocks where >= 3 shares fit the per-stock cap')
+
+
 def test_paper_gates_can_approve_a_trade_and_live_stays_strict():
     """Exit rules are +2.5% / -1.5% (best 1.67:1). A 3:1 RiskGate minimum rejects everything."""
     from src.agents.risk_gate import RiskGate
@@ -313,6 +345,7 @@ if __name__ == '__main__':
         test_online_model_learns_from_entry_features_and_net_label,
         test_online_model_skips_positions_it_did_not_open,
         test_post_trade_agent_snapshots_entry_on_buy,
+        test_scanner_skips_stocks_too_expensive_for_capital,
         test_paper_gates_can_approve_a_trade_and_live_stays_strict,
         test_broker_health_check_works_through_paper_broker,
         test_status_json_has_dashboard_fields,

@@ -63,11 +63,29 @@ class MarketScanner:
         min_volume: int = 500_000,
         sentiment_boost: bool = True,
         candidate_pool: Optional[List[str]] = None,
+        capital: Optional[float] = None,
+        max_position_pct: float = 0.15,
+        min_shares: int = 3,
+        slippage: float = 0.003,
     ):
+        """
+        capital:          trading capital. When given, only stocks we can easily trade
+                          are shortlisted: `min_shares` shares must fit inside
+                          capital * max_position_pct (same cap RiskGate enforces).
+                          None disables the filter.
+        max_position_pct: per-stock cap, keep equal to RiskGate.max_position_pct
+        min_shares:       smallest position worth taking; 1 share makes P&L chunky
+                          and leaves no room to size by risk
+        slippage:         RiskGate pays limit = ltp * (1 + slippage)
+        """
         self.trader          = trader
         self.max_symbols     = max_symbols
         self.min_price       = min_price
         self.min_volume      = min_volume
+        self.max_price: Optional[float] = (
+            capital * max_position_pct / (min_shares * (1 + slippage))
+            if capital else None
+        )
         self.sentiment_boost = sentiment_boost
         self.sentiment_analyzer = SentimentAnalyzer()
         self.logger = logging.getLogger(__name__)
@@ -268,6 +286,7 @@ class MarketScanner:
             return []
 
         candidates = []
+        too_expensive = []
         for symbol in self.candidate_pool:
             q = quotes.get(f"NSE:{symbol}")
             if not q:
@@ -275,6 +294,9 @@ class MarketScanner:
             ltp    = q.get('last_price', 0)
             volume = q.get('volume', 0)
             if ltp < self.min_price or volume < self.min_volume:
+                continue
+            if self.max_price is not None and ltp > self.max_price:
+                too_expensive.append(symbol)
                 continue
 
             ohlc = q.get('ohlc', {})
@@ -297,6 +319,12 @@ class MarketScanner:
                 'sentiment_score': 0.5,
             })
 
+        if too_expensive:
+            self.logger.info(
+                f"MarketScanner: skipped {len(too_expensive)} stocks above "
+                f"₹{self.max_price:,.0f} (too expensive for our capital): "
+                f"{', '.join(too_expensive)}"
+            )
         candidates.sort(key=lambda x: x['volume'], reverse=True)
         return candidates[:_ENRICH_TOP_N]
 
