@@ -95,6 +95,10 @@ class KiteTrader:
             self.logger.error(f"Connection check failed: {str(e)}")
             return False
     
+    def get_profile(self) -> Dict:
+        """Account profile (read-only); used by BrokerHealthMonitor as a liveness probe."""
+        return self.kite.profile()
+
     def get_login_url(self) -> Optional[str]:
         """Get the login URL for manual authentication."""
         if not self.kite:

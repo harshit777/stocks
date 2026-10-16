@@ -209,6 +209,23 @@ def test_post_trade_agent_snapshots_entry_on_buy():
     print('  ✓ BUY fill triggers the entry snapshot, SELL does not')
 
 
+def test_broker_health_check_works_through_paper_broker():
+    """BrokerHealthMonitor probes get_profile(); KiteTrader must have it and PaperBroker must forward it."""
+    from src.kite_trader.trader import KiteTrader
+    from src.utils.broker_health import BrokerHealthMonitor
+
+    assert hasattr(KiteTrader, 'get_profile')
+
+    class _Kite:
+        def profile(self): return {'user_id': 'AB1234'}
+
+    real = KiteTrader.__new__(KiteTrader)      # skip network/credential setup
+    real.kite = _Kite()
+    health = BrokerHealthMonitor(PaperBroker(real), check_interval=0, failure_threshold=3).check_health()
+    assert health['is_healthy'] and not health['should_halt'], health
+    print('  ✓ health check passes through PaperBroker -> KiteTrader.get_profile')
+
+
 def test_status_json_has_dashboard_fields():
     """status.json carries everything docs/status/index.html renders."""
     code = r'''
@@ -267,6 +284,7 @@ if __name__ == '__main__':
         test_online_model_learns_from_entry_features_and_net_label,
         test_online_model_skips_positions_it_did_not_open,
         test_post_trade_agent_snapshots_entry_on_buy,
+        test_broker_health_check_works_through_paper_broker,
         test_status_json_has_dashboard_fields,
     ]
     passed = failed = 0
