@@ -33,6 +33,7 @@ from ..ai_modules.predictive_model import PredictiveModel
 from ..ai_modules.trading_psychology import TradingPsychologyGuard
 from ..ml.feature_engine import FeatureEngine
 from ..ml.online_model import OnlineModel
+from ..ml.prediction_ledger import PredictionLedger, reward_weight
 
 
 class SignalEngine:
@@ -91,6 +92,11 @@ class SignalEngine:
         # ML layer — replaces heuristic prediction score
         self._feature_engines: Dict[str, FeatureEngine] = {}   # symbol → FeatureEngine
         self._online_model = OnlineModel()
+        # Holds the model to account: every prediction is judged by what the market did next
+        self.ledger = PredictionLedger(target_pct=0.025, stop_pct=stop_loss_pct)
+        self._latest_prob: Dict[str, float] = {}      # symbol → model's latest win probability
+        self._entry_prob: Dict[str, float] = {}       # symbol → probability when the position was opened
+        self._passes = 0
         # symbol → (feature vector at entry, entry price) for the open position,
         # so the online model learns from what the signal saw when it bought.
         self._entry_features: Dict[str, Tuple[np.ndarray, float]] = {}
@@ -243,6 +249,8 @@ class SignalEngine:
             'prediction': self._score_prediction(symbol),
         }
 
+        self._judge_predictions(symbol, current_price)
+
         signal, confidence = self._combine(scores)
 
         # Learned news-tone nudge (bounded, and zero until enough evidence exists)
@@ -288,6 +296,9 @@ class SignalEngine:
                 self.logger.error(f"SignalEngine: error on {symbol}: {e}")
                 signals[symbol] = None
         self._log_scan(looks, signals)
+        self._passes += 1
+        if self._passes % 5 == 0:
+            self._log_scoreboard()
         return signals
 
     def _entry_look(self, symbol: str, market_data: Dict):
@@ -321,6 +332,9 @@ class SignalEngine:
         vec = fe.latest_vector() if fe is not None else None
         if vec is not None:
             self._entry_features[symbol] = (vec.copy(), entry_price)
+            prob = self._latest_prob.get(symbol)
+            if prob is not None:
+                self._entry_prob[symbol] = prob
 
     def record_trade_outcome(self, symbol: str, signal: str,
                              entry_price: float, quantity: int,
@@ -345,7 +359,14 @@ class SignalEngine:
             costs = (calc.calculate_total_cost(buy_price, quantity, 'BUY')['total_cost']
                      + calc.calculate_total_cost(entry_price, quantity, 'SELL')['total_cost'])
             label = 1 if (pnl - costs) > 0 else 0
-            self._online_model.update(feature_vec, label)
+            prob = self._entry_prob.pop(symbol, None)
+            # A real trade is the strongest feedback: a confident miss is punished hardest
+            self._online_model.update(feature_vec, label,
+                                      weight=reward_weight(prob, label, traded=True))
+            self.logger.info(
+                f"ML verdict {symbol}: predicted {'n/a' if prob is None else f'{prob:.0%}'} win, "
+                f"trade {'WON' if label else 'LOST'} net of costs"
+            )
             if self._online_model.n_updates % 5 == 0:
                 self._online_model.save()
 
@@ -420,10 +441,41 @@ class SignalEngine:
             return None   # not enough history yet
 
         prob = self._online_model.predict_proba(vec)   # 0–1 win probability
+        self._latest_prob[symbol] = prob               # logged and judged even while benched
+        if self.ledger.benched:
+            return None    # the model is not beating the base rate: it does not get a vote
         # Map 0–1 probability to -1..+1 signal score
         # prob=0.5 → 0 (no signal), prob=0.7 → +0.4, prob=0.3 → -0.4
         score = (prob - 0.5) * 2.0
         return score if abs(score) > 0.1 else None
+
+    def _judge_predictions(self, symbol: str, price: float):
+        """Record this pass's prediction, and learn from earlier ones the market has now answered."""
+        fe = self._feature_engines.get(symbol)
+        vec = fe.latest_vector() if fe is not None else None
+        prob = self._latest_prob.get(symbol) if vec is not None else None
+        try:
+            for a in self.ledger.observe(symbol, price, vec, prob):
+                self._online_model.update(
+                    a['vec'], a['label'], weight=reward_weight(a['prob'], a['label']))
+        except Exception as e:
+            self.logger.error(f"SignalEngine: prediction ledger error on {symbol}: {e}")
+
+    def _log_scoreboard(self):
+        s = self.ledger.summary()
+        if not s['window']:
+            self.logger.info("ML scoreboard: no predictions answered yet")
+            return
+        verdict = ('BENCHED' if s['benched'] else
+                   'on probation' if s['window'] < s['min_judge'] else 'trusted')
+        conf = ('n/a' if s['confident_win_rate'] is None
+                else f"{s['confident_win_rate']:.0%} of {s['confident_n']}")
+        self.logger.info(
+            f"ML scoreboard [{verdict}]: {s['window']} answered | "
+            f"error {s['brier']:.3f} vs always-guess-base-rate {s['baseline_brier']:.3f} "
+            f"(skill {s['skill']:+.3f}) | right side {s['hit_rate']:.0%} | "
+            f"base win rate {s['base_rate']:.0%} | when confident it won {conf}"
+        )
 
     # ------------------------------------------------------------------
     # Signal combiner
@@ -476,6 +528,7 @@ class SignalEngine:
         return {
             'online_updates':   self._online_model.n_updates,
             'online_mature':    self._online_model.is_mature,
+            'scoreboard':       self.ledger.summary(),
             'offline_accuracy': meta.get('cv_accuracy_mean') if meta else None,
             'offline_trained':  meta.get('trained_at') if meta else None,
             'symbols_with_features': len(self._feature_engines),
@@ -498,3 +551,4 @@ class SignalEngine:
         self.pattern_recognizer.save_patterns(os.path.join(ai_data_dir, 'patterns.json'))
         self.sentiment_analyzer.save_sentiment_data(os.path.join(ai_data_dir, 'sentiment.json'))
         self.predictive_model.save_model(os.path.join(ai_data_dir, 'model.json'))
+        self.ledger.save()

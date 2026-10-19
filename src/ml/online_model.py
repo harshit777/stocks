@@ -77,6 +77,7 @@ class OnlineModel:
         # Buffer for first-batch fit (SGD needs at least 2 classes before partial_fit)
         self._warmup_X = []
         self._warmup_y = []
+        self._warmup_w = []
         self._warmup_done = False
 
         self._load()
@@ -127,13 +128,14 @@ class OnlineModel:
     # Online update — called after every closed trade
     # ------------------------------------------------------------------
 
-    def update(self, feature_vec: np.ndarray, label: int) -> None:
+    def update(self, feature_vec: np.ndarray, label: int, weight: float = 1.0) -> None:
         """
         Incrementally update the SGD adapter with one new sample.
 
         Args:
             feature_vec: 20-float array (same order as FEATURE_NAMES)
             label:       1 = trade was profitable, 0 = loss
+            weight:      how hard this outcome pushes the model (>1 = reward/punish harder)
         """
         if feature_vec is None or len(feature_vec) != N_FEATURES:
             return
@@ -146,25 +148,28 @@ class OnlineModel:
             # Buffer until we have both classes
             self._warmup_X.append(x[0])
             self._warmup_y.append(int(label))
+            self._warmup_w.append(float(weight))
             if len(set(self._warmup_y)) == 2 and len(self._warmup_y) >= 10:
                 X_w = np.stack(self._warmup_X).astype(np.float32)
                 y_w = np.array(self._warmup_y, dtype=np.int8)
                 self._scaler.fit(X_w)
                 self._scaler_fitted = True
                 X_scaled = self._scaler.transform(X_w)
-                self._sgd.fit(X_scaled, y_w)
+                self._sgd.fit(X_scaled, y_w, sample_weight=np.array(self._warmup_w))
                 self._sgd_fitted = True
                 self._warmup_done = True
                 self._n_updates  += len(y_w)
                 logger.info(f"OnlineModel: warmup complete with {len(y_w)} samples")
                 self._warmup_X.clear()
                 self._warmup_y.clear()
+                self._warmup_w.clear()
             return
 
         # Incremental update
         try:
             x_scaled = self._scaler.transform(x)
-            self._sgd.partial_fit(x_scaled, [int(label)], classes=[0, 1])
+            self._sgd.partial_fit(x_scaled, [int(label)], classes=[0, 1],
+                                  sample_weight=[float(weight)])
             self._n_updates += 1
 
             if self._n_updates % 10 == 0:

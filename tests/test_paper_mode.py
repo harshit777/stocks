@@ -148,8 +148,9 @@ def _engine_with_spy():
 
     class _Spy:
         n_updates = 1
+        is_mature = False
         def __init__(self): self.calls = []
-        def update(self, vec, label): self.calls.append((vec.copy(), label))
+        def update(self, vec, label, weight=1.0): self.calls.append((vec.copy(), label))
         def save(self): pass
 
     se = SignalEngine(trader=_FakeTrader(), symbols=['A'])
@@ -654,6 +655,7 @@ def test_entry_scan_reports_why_nothing_was_bought():
         trader=t, symbols=list(qs), min_profit_margin=0.01, buy_threshold=0.20,
         sell_threshold=0.80, risk_reward_ratio=2.0, stop_loss_pct=0.015)
     se.generate_signal = lambda sym, md: (se.base_strategy.update_intraday_data(sym, md), None)[1]
+    se._passes = 0
 
     records = []
 
@@ -678,6 +680,105 @@ def test_entry_scan_reports_why_nothing_was_bought():
     se.run_iteration()
     assert not [m for m in records if m.startswith('Entry scan')]
     print('  \u2713 entry scan line says how many symbols were in the buy zone and had room')
+
+def test_reward_is_bigger_for_confident_mistakes_and_bounded():
+    from src.ml.prediction_ledger import reward_weight
+    assert reward_weight(0.9, 0) > reward_weight(0.6, 0) > reward_weight(0.5, 0)   # confident miss hurts most
+    assert reward_weight(0.9, 1) < reward_weight(0.9, 0)                           # being right is a smaller nudge
+    assert reward_weight(0.6, 0, traded=True) == 2 * reward_weight(0.6, 0)         # a real trade counts double
+    assert reward_weight(None, 1) == 1.0 and reward_weight(0.0, 1, traded=True) <= 5.0
+    print('  \u2713 reward/punishment scales with confidence, real trades count more, and it is capped')
+
+
+def _vec():
+    return np.arange(20, dtype=np.float32)
+
+
+def test_ledger_answers_predictions_with_target_stop_and_timeout():
+    from src.ml.prediction_ledger import PredictionLedger
+    d = tempfile.mkdtemp()
+    L = PredictionLedger(path=d + '/l.json', sample_every=1, horizon=3)
+    L.observe('X', 100.0, _vec(), 0.7)                      # prediction made at 100
+    assert L.observe('X', 102.6, None, None)[0]['label'] == 1      # +2.6% -> target hit
+    L.observe('X', 100.0, _vec(), 0.7)
+    assert L.observe('X', 98.0, None, None)[0]['label'] == 0       # -2% -> stop hit
+    L.observe('X', 100.0, _vec(), 0.7)
+    assert L.observe('X', 100.1, None, None) == []                  # still open
+    assert L.observe('X', 100.1, None, None) == []
+    out = L.observe('X', 100.1, None, None)                         # timeout: +0.1% is eaten by costs
+    assert out and out[0]['label'] == 0, out
+    print('  \u2713 predictions are answered by target, stop or a cost-aware timeout')
+
+
+def test_ledger_benches_a_model_that_loses_to_the_base_rate_and_lets_it_return():
+    from src.ml.prediction_ledger import PredictionLedger
+    d = tempfile.mkdtemp()
+    L = PredictionLedger(path=d + '/l.json', window=200, min_judge=50)
+    for i in range(60):                                     # confidently wrong half the time
+        L._done.append((0.9, i % 2))
+    L._refresh()
+    assert L.benched and L.summary()['skill'] < 0
+    for i in range(200):                                    # then genuinely informative
+        L._done.append((0.8, 1) if i % 2 else (0.2, 0))
+    L._refresh()
+    assert not L.benched and L.summary()['skill'] > 0
+    few = PredictionLedger(path=d + '/f.json', min_judge=50)
+    for _ in range(10):
+        few._done.append((0.9, 0))
+    few._refresh()
+    assert not few.benched                                  # not enough evidence to judge yet
+    print('  \u2713 model is benched only with enough evidence, and returns when it beats the baseline')
+
+
+def test_ledger_survives_restart():
+    from src.ml.prediction_ledger import PredictionLedger
+    p = tempfile.mkdtemp() + '/l.json'
+    a = PredictionLedger(path=p)
+    a._done.extend([(0.6, 1), (0.4, 0)])
+    a.total = 2
+    a.save()
+    b = PredictionLedger(path=p)
+    assert b.total == 2 and len(b._done) == 2
+    open(p, 'w').write('{broken')
+    assert PredictionLedger(path=p).total == 0              # corrupt file never crashes the bot
+    print('  \u2713 scoreboard persists across days; a corrupt file is ignored')
+
+
+def test_online_model_weights_samples_and_signal_engine_learns_from_shadow_predictions():
+    from src.ml.online_model import OnlineModel
+    from src.ml.prediction_ledger import PredictionLedger
+    rng = np.random.default_rng(1)
+    om = OnlineModel()
+    om._warmup_done = False
+    om._warmup_X, om._warmup_y, om._warmup_w = [], [], []
+    for i in range(30):
+        om.update(rng.normal(size=20).astype(np.float32), i % 2, weight=3.0)
+    assert om._sgd_fitted and om.n_updates >= 10
+
+    se, fe = _engine_with_spy()
+    se.ledger = PredictionLedger(path=tempfile.mkdtemp() + '/l.json', sample_every=1, horizon=2)
+    calls = []
+    se._online_model.update = lambda v, l, weight=1.0: calls.append((l, weight))
+    se._latest_prob['A'] = 0.9
+    se._judge_predictions('A', 100.0)                # records a 90% win prediction
+    se._judge_predictions('A', 97.0)                 # market stops it out -> confident miss
+    assert calls and calls[0][0] == 0 and calls[0][1] > 2.5, calls
+    print('  \u2713 shadow predictions teach the model, and a confident miss is punished hard')
+
+
+def test_benched_model_loses_its_vote_but_keeps_predicting():
+    from src.ml.prediction_ledger import PredictionLedger
+    se, fe = _engine_with_spy()
+    se._online_model.predict_proba = lambda v: 0.9
+    se.ledger = PredictionLedger(path=tempfile.mkdtemp() + '/l.json')
+    assert se._score_prediction('A') is not None
+    se.ledger.benched = True
+    assert se._score_prediction('A') is None          # no vote while benched
+    assert se._latest_prob['A'] == 0.9                # but it is still being graded
+    assert 'scoreboard' in se.get_ml_status()
+    print('  \u2713 benched model is silent in signals yet still graded')
+
+
 
 
 if __name__ == '__main__':
@@ -715,6 +816,12 @@ if __name__ == '__main__':
         test_fill_never_lands_outside_the_band_even_with_slippage,
         test_missing_circuit_fields_do_not_block_trading,
         test_entry_scan_reports_why_nothing_was_bought,
+        test_reward_is_bigger_for_confident_mistakes_and_bounded,
+        test_ledger_answers_predictions_with_target_stop_and_timeout,
+        test_ledger_benches_a_model_that_loses_to_the_base_rate_and_lets_it_return,
+        test_ledger_survives_restart,
+        test_online_model_weights_samples_and_signal_engine_learns_from_shadow_predictions,
+        test_benched_model_loses_its_vote_but_keeps_predicting,
     ]
     passed = failed = 0
     for t in tests:
