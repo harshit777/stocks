@@ -276,14 +276,44 @@ class SignalEngine:
         Returns dict of symbol → signal (None if no signal).
         """
         signals = {}
+        looks = []   # (symbol, position in day range, room up to day high) for the scan summary
         for symbol in self.symbols:
             try:
                 market_data = self.trader.get_quote([symbol])
                 signals[symbol] = self.generate_signal(symbol, market_data)
+                look = self._entry_look(symbol, market_data)
+                if look:
+                    looks.append(look)
             except Exception as e:
                 self.logger.error(f"SignalEngine: error on {symbol}: {e}")
                 signals[symbol] = None
+        self._log_scan(looks, signals)
         return signals
+
+    def _entry_look(self, symbol: str, market_data: Dict):
+        """(symbol, position in day range, room to day high) — what the breakout gate sees."""
+        price = market_data.get(f"NSE:{symbol}", {}).get('last_price', 0)
+        data = self.base_strategy.intraday_data.get(symbol)
+        if price <= 0 or not data:
+            return None
+        pos = self.base_strategy.calculate_price_position(symbol, price)
+        return symbol, pos, (data['high'] - price) / price
+
+    def _log_scan(self, looks, signals):
+        """One INFO line per pass: why entries did or did not happen (rejections are DEBUG)."""
+        if not looks:
+            return
+        s = self.base_strategy
+        need = max(s.min_profit_margin, s.risk_reward_ratio * s.stop_loss_pct)
+        in_zone = [l for l in looks if l[1] <= s.buy_threshold]
+        roomy = [l for l in in_zone if l[2] >= need]
+        nearest = sorted(looks, key=lambda l: l[1])[:3]
+        self.logger.info(
+            f"Entry scan: {len(looks)} symbols | in buy zone (<={s.buy_threshold:.0%} of day range): "
+            f"{len(in_zone)} | with room >={need:.1%} to day high: {len(roomy)} | "
+            f"signals: {sum(1 for v in signals.values() if v)} | "
+            "lowest-in-range: " + ', '.join(f"{sym} {p:.0%} (room {r:.1%})" for sym, p, r in nearest)
+        )
 
     def record_entry(self, symbol: str, entry_price: float):
         """Remember the feature vector at the moment a position is opened."""

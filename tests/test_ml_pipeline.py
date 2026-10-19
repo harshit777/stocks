@@ -179,7 +179,7 @@ def test_trainer_finds_training_data_on_ordinary_stocks():
         data = {}
 
         def get_historical_data(self, symbol, from_date, to_date, interval):
-            c = T.data.setdefault(symbol, gen(abs(hash(symbol)) % 9999))
+            c = T.data.setdefault(symbol, gen(ord(symbol[0])))   # not hash(): it is salted per process
             return [x for x in c if from_date <= x['date'] <= to_date]
 
     old = (mt.MODEL_PATH, mt.META_PATH)

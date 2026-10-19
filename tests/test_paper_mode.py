@@ -628,6 +628,58 @@ def test_missing_circuit_fields_do_not_block_trading():
     print('  \u2713 quote without circuit limits (or zeros) trades normally')
 
 
+def test_entry_scan_reports_why_nothing_was_bought():
+    import logging
+    from src.agents.signal_engine import SignalEngine
+    from src.strategies.intraday_high_low_strategy import IntradayHighLowStrategy
+
+    class _T:
+        def __init__(self, qs):
+            self.qs = qs
+
+        def get_quote(self, syms):
+            return {f'NSE:{s}': self.qs[s] for s in syms}
+
+    def q(price, high, low):
+        return {'last_price': price, 'ohlc': {'open': price, 'high': high, 'low': low}, 'volume': 1}
+
+    # FLAT: near its low but only 1% below the high.  ROOMY: near its low, 5% below the high.
+    # MID: mid-range.
+    qs = {'FLAT': q(100.2, 101.2, 100.0), 'ROOMY': q(100.5, 105.5, 100.0), 'MID': q(102.0, 104.0, 100.0)}
+    t = _T(qs)
+    se = SignalEngine.__new__(SignalEngine)
+    se.trader, se.symbols = t, list(qs)
+    se.logger = logging.getLogger('scan_test')
+    se.base_strategy = IntradayHighLowStrategy(
+        trader=t, symbols=list(qs), min_profit_margin=0.01, buy_threshold=0.20,
+        sell_threshold=0.80, risk_reward_ratio=2.0, stop_loss_pct=0.015)
+    se.generate_signal = lambda sym, md: (se.base_strategy.update_intraday_data(sym, md), None)[1]
+
+    records = []
+
+    class _H(logging.Handler):
+        def emit(self, r):
+            records.append(r.getMessage())
+
+    se.logger.addHandler(_H())
+    se.logger.setLevel(logging.INFO)
+    assert se.run_iteration() == {'FLAT': None, 'ROOMY': None, 'MID': None}
+    line = [m for m in records if m.startswith('Entry scan')]
+    assert len(line) == 1, records
+    line = line[0]
+    assert '3 symbols' in line and 'buy zone (<=20% of day range): 2' in line, line
+    assert 'room >=3.0% to day high: 1' in line, line          # only ROOMY clears 2.0 x 1.5%
+    assert 'signals: 0' in line and 'FLAT' in line and 'ROOMY' in line, line
+
+    # No data at all -> no line, no crash
+    records.clear()
+    se.symbols, t.qs = ['GONE'], {}
+    t.get_quote = lambda syms: {}
+    se.run_iteration()
+    assert not [m for m in records if m.startswith('Entry scan')]
+    print('  \u2713 entry scan line says how many symbols were in the buy zone and had room')
+
+
 if __name__ == '__main__':
     tests = [
         test_paper_broker_never_places_real_orders,
@@ -662,6 +714,7 @@ if __name__ == '__main__':
         test_stock_locked_at_circuit_has_nothing_to_trade_against,
         test_fill_never_lands_outside_the_band_even_with_slippage,
         test_missing_circuit_fields_do_not_block_trading,
+        test_entry_scan_reports_why_nothing_was_bought,
     ]
     passed = failed = 0
     for t in tests:
