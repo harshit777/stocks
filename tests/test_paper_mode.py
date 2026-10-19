@@ -779,6 +779,44 @@ def test_benched_model_loses_its_vote_but_keeps_predicting():
     print('  \u2713 benched model is silent in signals yet still graded')
 
 
+def test_component_check_explains_silent_components_without_changing_signals():
+    import logging
+    from src.agents.signal_engine import SignalEngine
+
+    se, fe = _engine_with_spy()
+    records = []
+
+    class _H(logging.Handler):
+        def emit(self, r):
+            records.append(r.getMessage())
+
+    se.logger.addHandler(_H())
+    se.logger.setLevel(logging.INFO)
+    scores = {'breakout': 1.0, 'pattern': None, 'trend': None, 'sentiment': None, 'prediction': -0.26}
+
+    # Two passes with the same candle open (a day-candle quote) -> flagged as static.
+    candle = {'open': 100.0, 'high': 104.0, 'low': 99.0, 'close': 101.0, 'volume': 1}
+    se._diagnose('A', candle, scores)
+    se._diagnose('A', {**candle, 'close': 101.5}, scores)
+    assert se._diag['A']['open_static'] is True
+    se._log_components()
+    line = [m for m in records if m.startswith('Component check')][0]
+    assert 'breakout 1, pattern 0, trend 0, sentiment 0, ML 1' in line, line
+    assert 'under 8 recorded moves' in line and 'lack history' in line, line
+    assert 'candle open unchanged since last pass: 1/1' in line, line
+
+    # A real bar-by-bar feed changes its open -> not static.
+    se._diagnose('A', {**candle, 'open': 101.0}, scores)
+    assert se._diag['A']['open_static'] is False
+
+    # Diagnostics must never raise, even on garbage input, and never touch the scores.
+    before = dict(scores)
+    se._diagnose('A', {}, scores)
+    assert scores == before
+    SignalEngine._log_components(type('E', (), {'_diag': {}, 'logger': se.logger})())   # empty: silent
+    print('  \u2713 component check reports why trend/sentiment/pattern are silent and is read-only')
+
+
 
 
 if __name__ == '__main__':
@@ -822,6 +860,7 @@ if __name__ == '__main__':
         test_ledger_survives_restart,
         test_online_model_weights_samples_and_signal_engine_learns_from_shadow_predictions,
         test_benched_model_loses_its_vote_but_keeps_predicting,
+        test_component_check_explains_silent_components_without_changing_signals,
     ]
     passed = failed = 0
     for t in tests:

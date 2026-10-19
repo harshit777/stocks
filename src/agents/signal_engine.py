@@ -97,6 +97,7 @@ class SignalEngine:
         self._latest_prob: Dict[str, float] = {}      # symbol → model's latest win probability
         self._entry_prob: Dict[str, float] = {}       # symbol → probability when the position was opened
         self._passes = 0
+        self._diag: Dict[str, dict] = {}              # symbol → why each component voted or not
         # symbol → (feature vector at entry, entry price) for the open position,
         # so the online model learns from what the signal saw when it bought.
         self._entry_features: Dict[str, Tuple[np.ndarray, float]] = {}
@@ -249,6 +250,7 @@ class SignalEngine:
             'prediction': self._score_prediction(symbol),
         }
 
+        self._diagnose(symbol, candle, scores)
         self._judge_predictions(symbol, current_price)
 
         signal, confidence = self._combine(scores)
@@ -299,7 +301,51 @@ class SignalEngine:
         self._passes += 1
         if self._passes % 5 == 0:
             self._log_scoreboard()
+            self._log_components()
         return signals
+
+    def _diagnose(self, symbol: str, candle: Dict, scores: Dict):
+        """Record WHY each component did or did not vote. Read-only: never affects a signal."""
+        try:
+            trend = self.pattern_recognizer.detect_trend(symbol)
+            sent = self.sentiment_analyzer.get_sentiment_score(symbol)
+            pats = self.pattern_recognizer.detect_candlestick_patterns(symbol)
+            prev = self._diag.get(symbol)
+            self._diag[symbol] = {
+                'trend_dir': trend.get('direction'), 'trend_strength': float(trend.get('strength', 0)),
+                'trend_conf': float(trend.get('confidence', 0)),
+                'sent_conf': float(sent.get('confidence', 0)), 'sent_now': float(sent.get('current', 0)),
+                'patterns': sorted(pats), 'open': candle['open'],
+                # same candle open as the last pass => the "candle" is the day's, not the last bar
+                'open_static': prev is not None and prev['open'] == candle['open'],
+                'voted': {k: v is not None for k, v in scores.items()},
+            }
+        except Exception:
+            pass
+
+    def _log_components(self):
+        """One INFO line saying why trend / sentiment / pattern are silent (or not)."""
+        d = list(self._diag.values())
+        if not d:
+            return
+        n = len(d)
+        voted = lambda k: sum(1 for x in d if x['voted'].get(k))
+        no_hist = sum(1 for x in d if x['trend_dir'] == 'neutral' and x['trend_conf'] == 0)
+        directional = [x for x in d if x['trend_dir'] in ('uptrend', 'downtrend')]
+        sent_low_conf = sum(1 for x in d if x['sent_conf'] < 0.4)
+        sent_weak = sum(1 for x in d if x['sent_conf'] >= 0.4 and abs(x['sent_now']) <= 0.2)
+        with_pattern = sum(1 for x in d if x['patterns'])
+        static = sum(1 for x in d if x['open_static'])
+        self.logger.info(
+            f"Component check ({n} symbols) | "
+            f"votes: breakout {voted('breakout')}, pattern {voted('pattern')}, trend {voted('trend')}, "
+            f"sentiment {voted('sentiment')}, ML {voted('prediction')} | "
+            f"trend: {no_hist} lack history, {len(directional)} directional "
+            f"(best strength {max((x['trend_strength'] for x in directional), default=0):.2f}, needs >0.50) | "
+            f"sentiment: {sent_low_conf} under 8 recorded moves, {sent_weak} too weak (|score|<=0.2) | "
+            f"pattern: {with_pattern} saw a candlestick pattern | "
+            f"candle open unchanged since last pass: {static}/{n} (all = quote OHLC is the day's candle, not a bar)"
+        )
 
     def _entry_look(self, symbol: str, market_data: Dict):
         """(symbol, position in day range, room to day high) — what the breakout gate sees."""
