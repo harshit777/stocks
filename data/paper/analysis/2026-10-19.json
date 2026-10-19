@@ -1,0 +1,465 @@
+{
+  "date": "2026-10-19",
+  "market": {
+    "nifty_pct": -1.1,
+    "vix": 14.54,
+    "regime": "trending",
+    "tone": {
+      "label": "negative",
+      "score": -0.667,
+      "n": 10
+    },
+    "headlines": [
+      {
+        "title": "Stock Market Crash: Investors Lose Rs 4 Lakh Crore As Sensex, Nifty Tank. 3 Reasons Why Market Are Falling Today",
+        "source": "NDTV",
+        "score": -1.0
+      },
+      {
+        "title": "Stock market crash today: Sensex plunges over 900 points, Nifty50 below 22,900 - top reasons for fall",
+        "source": "The Times of India",
+        "score": -1.0
+      },
+      {
+        "title": "Sensex, Nifty Mixed at Open Amid Weak Asian Markets",
+        "source": "HDFC Sky",
+        "score": -1.0
+      },
+      {
+        "title": "Sensex, Nifty open flat as high crude oil prices offset banking stocks gains",
+        "source": "ChiniMandi",
+        "score": 1.0
+      },
+      {
+        "title": "Stock market outlook today, 19 Oct: Sensex, Nifty prediction - DJIA, S&P, NASDAQ, GIFT Nifty, Kospi, Nikkei, Taiwan cues",
+        "source": "Livemint",
+        "score": 0.0
+      }
+    ],
+    "timeline": [
+      {
+        "time": "10:43",
+        "nifty_pct": -0.44,
+        "market_tone": -0.429
+      },
+      {
+        "time": "11:14",
+        "nifty_pct": -0.33,
+        "market_tone": -0.571
+      },
+      {
+        "time": "11:44",
+        "nifty_pct": -0.61,
+        "market_tone": -0.571
+      },
+      {
+        "time": "12:15",
+        "nifty_pct": -0.9,
+        "market_tone": -0.571
+      },
+      {
+        "time": "12:46",
+        "nifty_pct": -0.92,
+        "market_tone": -0.571
+      },
+      {
+        "time": "13:17",
+        "nifty_pct": -0.97,
+        "market_tone": -0.571
+      },
+      {
+        "time": "13:47",
+        "nifty_pct": -1.26,
+        "market_tone": -0.625
+      },
+      {
+        "time": "14:18",
+        "nifty_pct": -1.2,
+        "market_tone": -0.667
+      },
+      {
+        "time": "14:49",
+        "nifty_pct": -1.19,
+        "market_tone": -0.667
+      },
+      {
+        "time": "15:00",
+        "nifty_pct": -1.1,
+        "market_tone": -0.667
+      }
+    ],
+    "breadth": {
+      "advancers": 5,
+      "decliners": 5,
+      "avg_move_pct": 1.03
+    }
+  },
+  "stocks": [
+    {
+      "symbol": "PNB",
+      "day_pct": 4.84,
+      "market_pct": -1.1,
+      "residual_pct": 5.94,
+      "gap_pct": 3.93,
+      "intraday_pct": 0.88,
+      "vol_ratio": 3.51,
+      "news_tone": "positive",
+      "news_score": 0.42,
+      "news_aligned": true,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 5.94%",
+        "gap at the open (+3.93%) \u2014 overnight news or global cues",
+        "heavy volume (3.5x the 20-day average)",
+        "news tone positive, consistent with the move"
+      ],
+      "summary": "PNB +4.84%: stock-specific: outperformed Nifty by 5.94%; gap at the open (+3.93%) \u2014 overnight news or global cues; heavy volume (3.5x the 20-day average); news tone positive, consistent with the move",
+      "headlines": [
+        {
+          "title": "Nifty PSU Bank index surges 3%; PNB, PSB, Canara, Union Bank soar up to 8%",
+          "source": "Business Standard",
+          "score": 1.0
+        },
+        {
+          "title": "PNB shares hit seven-month high as Q2 earnings beat estimates; check price targets",
+          "source": "Business Today",
+          "score": 1.0
+        },
+        {
+          "title": "Nifty 500: PNB jumps up to 7%; Urban Co plunges 7%, Axis Bank falls upto 5% on Q2 result; Check others",
+          "source": "CNBC TV18",
+          "score": -0.33
+        }
+      ]
+    },
+    {
+      "symbol": "FEDERALBNK",
+      "day_pct": 3.14,
+      "market_pct": -1.1,
+      "residual_pct": 4.23,
+      "gap_pct": -0.89,
+      "intraday_pct": 4.06,
+      "vol_ratio": 1.09,
+      "news_tone": "positive",
+      "news_score": 0.67,
+      "news_aligned": true,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 4.23%",
+        "intraday move after the open (+4.06%)",
+        "news tone positive, consistent with the move"
+      ],
+      "summary": "FEDERALBNK +3.14%: stock-specific: outperformed Nifty by 4.23%; intraday move after the open (+4.06%); news tone positive, consistent with the move",
+      "headlines": [
+        {
+          "title": "Buy Federal Bank; target of Rs 400: Prabhudas Lilladher",
+          "source": "Moneycontrol.com",
+          "score": 1.0
+        },
+        {
+          "title": "Federal Bank expects NIM improvement, seeks inorganic growth",
+          "source": "scanx.trade",
+          "score": 1.0
+        },
+        {
+          "title": "ICICI Bank share price target after Q2 results: What are Jefferies, other analysts saying?",
+          "source": "The Economic Times",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "CANBK",
+      "day_pct": 3.07,
+      "market_pct": -1.1,
+      "residual_pct": 4.16,
+      "gap_pct": 0.77,
+      "intraday_pct": 2.28,
+      "vol_ratio": 0.82,
+      "news_tone": "positive",
+      "news_score": 0.67,
+      "news_aligned": true,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 4.16%",
+        "intraday move after the open (+2.28%)",
+        "news tone positive, consistent with the move"
+      ],
+      "summary": "CANBK +3.07%: stock-specific: outperformed Nifty by 4.16%; intraday move after the open (+2.28%); news tone positive, consistent with the move",
+      "headlines": [
+        {
+          "title": "Nifty PSU Bank index surges 3%; PNB, PSB, Canara, Union Bank soar up to 8%",
+          "source": "Business Standard",
+          "score": 1.0
+        },
+        {
+          "title": "Public sector banks' Rs 7.8 lakh core corporate loan pipeline signals capex revival",
+          "source": "The Economic Times",
+          "score": 0.0
+        },
+        {
+          "title": "HCL Tech, IHCL, Sagility, HBL Engineering among stocks to buy; check fresh target prices & stop loss",
+          "source": "Business Today",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "NYKAA",
+      "day_pct": -2.2,
+      "market_pct": -1.1,
+      "residual_pct": -1.11,
+      "gap_pct": 0.52,
+      "intraday_pct": -2.71,
+      "vol_ratio": 0.44,
+      "news_tone": "none",
+      "news_score": 0.0,
+      "news_aligned": null,
+      "drivers": [
+        "stock-specific: underperformed Nifty by 1.11%",
+        "intraday move after the open (-2.71%)"
+      ],
+      "summary": "NYKAA -2.20%: stock-specific: underperformed Nifty by 1.11%; intraday move after the open (-2.71%)",
+      "headlines": [
+        {
+          "title": "Trade Spotlight: How should you trade Supreme Industries, Indian Hotels, Lemon Tree Hotels, Nykaa, Info...",
+          "source": "Moneycontrol.com",
+          "score": 0.0
+        },
+        {
+          "title": "Raja Venkatraman recommends three stocks for 19 October",
+          "source": "Livemint",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "BANKBARODA",
+      "day_pct": 3.3,
+      "market_pct": -1.1,
+      "residual_pct": 4.4,
+      "gap_pct": -0.04,
+      "intraday_pct": 3.35,
+      "vol_ratio": 0.52,
+      "news_tone": "neutral",
+      "news_score": 0.11,
+      "news_aligned": null,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 4.40%",
+        "intraday move after the open (+3.35%)"
+      ],
+      "summary": "BANKBARODA +3.30%: stock-specific: outperformed Nifty by 4.40%; intraday move after the open (+3.35%)",
+      "headlines": [
+        {
+          "title": "Axis Bank shares fall over 4% despite 38% YoY jump in Q2 net profit. Why brokerages are revising target pr",
+          "source": "The Economic Times",
+          "score": 0.33
+        },
+        {
+          "title": "Bank Of Baroda Shares Fall 3% After NMC Founder Seeks $15 Bn In Damages",
+          "source": "BW Businessworld",
+          "score": -1.0
+        },
+        {
+          "title": "HDFC Bank Limited (HDFCBANK.NS) stock price, news, quote and history",
+          "source": "Yahoo Finance UK",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "BPCL",
+      "day_pct": -0.14,
+      "market_pct": -1.1,
+      "residual_pct": 0.96,
+      "gap_pct": -0.51,
+      "intraday_pct": 0.38,
+      "vol_ratio": 0.14,
+      "news_tone": "negative",
+      "news_score": -1.0,
+      "news_aligned": null,
+      "drivers": [
+        "quiet \u2014 no clear driver"
+      ],
+      "summary": "BPCL -0.14%: quiet \u2014 no clear driver",
+      "headlines": [
+        {
+          "title": "What Bharat Petroleum Investors Missed Before The Fall",
+          "source": "Simply Wall Street",
+          "score": -1.0
+        },
+        {
+          "title": "Q2 Results This Week: Bajaj Finance, Swiggy, Eternal among 100 companies report this truncated week",
+          "source": "CNBC TV18",
+          "score": 0.0
+        },
+        {
+          "title": "BPCL cuts maize-based ethanol price, excludes sugarcane-based ethanol from tender",
+          "source": "Mid-Day",
+          "score": -1.0
+        }
+      ]
+    },
+    {
+      "symbol": "ONGC",
+      "day_pct": 1.06,
+      "market_pct": -1.1,
+      "residual_pct": 2.15,
+      "gap_pct": 0.45,
+      "intraday_pct": 0.61,
+      "vol_ratio": 0.19,
+      "news_tone": "positive",
+      "news_score": 1.0,
+      "news_aligned": true,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 2.15%",
+        "news tone positive, consistent with the move"
+      ],
+      "summary": "ONGC +1.06%: stock-specific: outperformed Nifty by 2.15%; news tone positive, consistent with the move",
+      "headlines": [
+        {
+          "title": "Top 19 PSU Stocks In India To Buy In October 2026",
+          "source": "Samco",
+          "score": 1.0
+        },
+        {
+          "title": "India vs Zimbabwe live streaming: When & where to watch 2nd WT20I today? IND-W vs ZIM-W probable XIs, pitch report",
+          "source": "Livemint",
+          "score": 0.0
+        },
+        {
+          "title": "PSU stocks today, October 19, 2026: Punjab National Bank jumps 5.19%, Canara Bank up 3.20%; RITES down 2.28%",
+          "source": "Business Upturn",
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "symbol": "KOTAKBANK",
+      "day_pct": -1.14,
+      "market_pct": -1.1,
+      "residual_pct": -0.04,
+      "gap_pct": -1.54,
+      "intraday_pct": 0.41,
+      "vol_ratio": 0.14,
+      "news_tone": "positive",
+      "news_score": 1.0,
+      "news_aligned": false,
+      "drivers": [
+        "market-wide move (Nifty -1.10%)",
+        "gap at the open (-1.54%) \u2014 overnight news or global cues",
+        "news tone positive, but the price went the other way \u2014 news did not explain it"
+      ],
+      "summary": "KOTAKBANK -1.14%: market-wide move (Nifty -1.10%); gap at the open (-1.54%) \u2014 overnight news or global cues; news tone positive, but the price went the other way \u2014 news did not explain it",
+      "headlines": [
+        {
+          "title": "Stocks To Buy Today: Four Top Stock Picks By Motilal Oswal's Chandan Taparia",
+          "source": "NDTV Profit",
+          "score": 1.0
+        },
+        {
+          "title": "Jio IPO will make Reliance India\u2019s biggest conglomerate: Uday Kotak",
+          "source": "The Economic Times",
+          "score": 0.0
+        },
+        {
+          "title": "Veteran SIP investors not deterred by stagnant market: Kotak Mahindra's's Harsha Upadhyaya",
+          "source": "Livemint",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "POWERGRID",
+      "day_pct": -0.28,
+      "market_pct": -1.1,
+      "residual_pct": 0.82,
+      "gap_pct": -0.18,
+      "intraday_pct": -0.1,
+      "vol_ratio": 0.25,
+      "news_tone": "positive",
+      "news_score": 1.0,
+      "news_aligned": null,
+      "drivers": [
+        "quiet \u2014 no clear driver"
+      ],
+      "summary": "POWERGRID -0.28%: quiet \u2014 no clear driver",
+      "headlines": [
+        {
+          "title": "Energy stocks dividend leaderboard: Power Grid, NTPC, SJVN, NHPC or IREDA - Which power stock beats the rest on yield?",
+          "source": "Livemint",
+          "score": 1.0
+        },
+        {
+          "title": "Top Stocks in news: ICICI Bank, Vedanta, HDFC Bank, Power Grid, YES Bank, RailTel, Axis Bank, Ixigo",
+          "source": "Business Today",
+          "score": 0.0
+        },
+        {
+          "title": "Is Preferred Stock Redemption Altering The Investment Case For Vistra (VST)?",
+          "source": "Simply Wall Street",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "WIPRO",
+      "day_pct": -1.38,
+      "market_pct": -1.1,
+      "residual_pct": -0.28,
+      "gap_pct": -0.22,
+      "intraday_pct": -1.16,
+      "vol_ratio": 0.29,
+      "news_tone": "neutral",
+      "news_score": 0.0,
+      "news_aligned": null,
+      "drivers": [
+        "market-wide move (Nifty -1.10%)",
+        "intraday move after the open (-1.16%)"
+      ],
+      "summary": "WIPRO -1.38%: market-wide move (Nifty -1.10%); intraday move after the open (-1.16%)",
+      "headlines": [
+        {
+          "title": "Earnings Update: Wipro Limited (NSE:WIPRO) Just Reported Its Second-Quarter Results And Analysts Are Updating Their Forecasts",
+          "source": "Simply Wall Street",
+          "score": 0.0
+        },
+        {
+          "title": "Wipro among 4 stocks showing White Marubozu pattern",
+          "source": "The Economic Times",
+          "score": 0.0
+        },
+        {
+          "title": "Trade Spotlight: How should you trade Supreme Industries, Indian Hotels, Lemon Tree Hotels, Nykaa, Info...",
+          "source": "Moneycontrol.com",
+          "score": 0.0
+        }
+      ]
+    }
+  ],
+  "trades": [
+    {
+      "symbol": "NYKAA",
+      "time": "2026-10-19T09:30:03.171843",
+      "qty": 4,
+      "entry": 338.27,
+      "exit": 337.18,
+      "gross_pnl": -4.36,
+      "costs": 1.61,
+      "net_pnl": -5.97,
+      "entry_tone": "none",
+      "move_after_exit_pct": 0.07,
+      "notes": [
+        "no news found at entry",
+        "market was weak (Nifty -1.10%)",
+        "stock-specific: underperformed Nifty by 1.11%"
+      ]
+    }
+  ],
+  "learning": {
+    "n_obs": 0,
+    "n_decisive": 0,
+    "accuracy": null,
+    "avg_move_by_tone": {},
+    "count_by_tone": {},
+    "adjustment_active": false,
+    "needs_more": 30
+  }
+}

@@ -1,0 +1,18 @@
+[
+  {
+    "timestamp": "2026-10-19T08:44:21.916740",
+    "symbol": "NYKAA",
+    "transaction_type": "BUY",
+    "quantity": 4,
+    "fill_price": 338.27,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-19T09:30:03.171843",
+    "symbol": "NYKAA",
+    "transaction_type": "SELL",
+    "quantity": 4,
+    "fill_price": 337.18,
+    "pnl": -4.3599999999999
+  }
+]

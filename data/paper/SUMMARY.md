@@ -1,15 +1,16 @@
-# Paper trading summary — day 1 of 10
+# Paper trading summary — day 2 of 10
 
 ## Cumulative
-- Closed trades: 2
-- **Win rate (before costs): 100.0%**
-- **Win rate (after costs): 50.0%**
-- Gross P&L ₹+10.08, costs ₹3.15, net ₹+6.93
+- Closed trades: 3
+- **Win rate (before costs): 66.7%**
+- **Win rate (after costs): 33.3%**
+- Gross P&L ₹+5.72, costs ₹4.76, net ₹+0.96
 
 ## By day
 | Day | Date | Trades | Win % (gross) | Win % (net) | Net P&L |
 |---:|---|---:|---:|---:|---:|
 | 1 | 2026-10-16 | 2 | 100.0% | 50.0% | ₹+6.93 |
+| 2 | 2026-10-19 | 1 | 0.0% | 0.0% | ₹-5.97 |
 
 ## Model training (latest runs)
 | Trained at | Samples | CV accuracy | CV AUC |
