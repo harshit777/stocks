@@ -276,8 +276,9 @@ class Backtester:
         bb_std   = self._vec_rolling_std(close, 20)
         bb_upper = bb_mid + 2 * bb_std
         bb_lower = bb_mid - 2 * bb_std
-        bb_pct   = np.where(bb_upper - bb_lower > 0,
-                            (close - bb_lower) / (bb_upper - bb_lower), np.float32(0.5))
+        with np.errstate(divide='ignore', invalid='ignore'):   # np.where evaluates both branches
+            bb_pct = np.where(bb_upper - bb_lower > 0,
+                              (close - bb_lower) / (bb_upper - bb_lower), np.float32(0.5))
 
         # ATR(14) — volatility
         tr    = self._vec_atr(high, low, close, 14)
@@ -518,7 +519,8 @@ class Backtester:
         loss  = np.where(delta < 0, -delta, 0.0).astype(np.float32)
         avg_g = Backtester._vec_ema(gain, period)
         avg_l = Backtester._vec_ema(loss, period)
-        rs    = np.where(avg_l > 0, avg_g / avg_l, np.float32(100))
+        with np.errstate(divide='ignore', invalid='ignore'):
+            rs = np.where(avg_l > 0, avg_g / avg_l, np.float32(100))
         return 100.0 - (100.0 / (1.0 + rs))
 
     @staticmethod
