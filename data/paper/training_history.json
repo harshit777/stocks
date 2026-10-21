@@ -43,5 +43,14 @@
     "cv_precision": 0.3695,
     "cv_recall": 0.241,
     "positive_rate": 0.5204
+  },
+  {
+    "trained_at": "2026-10-21T15:40:23.431725",
+    "n_samples": 94,
+    "cv_accuracy_mean": 0.4667,
+    "cv_auc_mean": 0.5669,
+    "cv_precision": 0.3569,
+    "cv_recall": 0.3381,
+    "positive_rate": 0.4787
   }
 ]
