@@ -1,0 +1,18 @@
+[
+  {
+    "timestamp": "2026-10-21T08:53:19.066798",
+    "symbol": "TATASTEEL",
+    "transaction_type": "BUY",
+    "quantity": 8,
+    "fill_price": 171.17,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-21T09:30:05.872661",
+    "symbol": "TATASTEEL",
+    "transaction_type": "SELL",
+    "quantity": 8,
+    "fill_price": 171.04,
+    "pnl": -1.0399999999999636
+  }
+]
