@@ -1,0 +1,414 @@
+{
+  "date": "2026-10-22",
+  "market": {
+    "nifty_pct": -0.63,
+    "vix": 16.12,
+    "regime": "trending",
+    "tone": {
+      "label": "negative",
+      "score": -0.857,
+      "n": 10
+    },
+    "headlines": [
+      {
+        "title": "Sensex down 500 points today: Why is stock market falling today?",
+        "source": "India Today",
+        "score": -1.0
+      },
+      {
+        "title": "Three Reasons Why Market Is Falling Today: Sensex Tumbles 600 Points, Nifty Tests 22,600",
+        "source": "NDTV Profit",
+        "score": -1.0
+      },
+      {
+        "title": "Why is stock market down today? Sensex drops over 700 points, Nifty crashes 1% - Top 3 reasons explained",
+        "source": "Livemint",
+        "score": -1.0
+      },
+      {
+        "title": "Why is the Stock Market falling today? 4 factors dragging Nifty, Sensex",
+        "source": "Zee Business",
+        "score": -1.0
+      },
+      {
+        "title": "Sensex, Nifty decline in early trade as power, metal stocks drag markets lower",
+        "source": "DD India",
+        "score": -1.0
+      }
+    ],
+    "timeline": [
+      {
+        "time": "14:25",
+        "nifty_pct": -0.84,
+        "market_tone": -0.857
+      },
+      {
+        "time": "14:56",
+        "nifty_pct": -0.73,
+        "market_tone": -0.857
+      },
+      {
+        "time": "15:00",
+        "nifty_pct": -0.64,
+        "market_tone": -0.857
+      }
+    ],
+    "breadth": {
+      "advancers": 4,
+      "decliners": 6,
+      "avg_move_pct": -0.65
+    }
+  },
+  "stocks": [
+    {
+      "symbol": "BPCL",
+      "day_pct": -0.71,
+      "market_pct": -0.63,
+      "residual_pct": -0.08,
+      "gap_pct": -1.06,
+      "intraday_pct": 0.35,
+      "vol_ratio": 3.43,
+      "news_tone": "none",
+      "news_score": 0.0,
+      "news_aligned": null,
+      "drivers": [
+        "market-wide move (Nifty -0.63%)",
+        "gap at the open (-1.06%) \u2014 overnight news or global cues",
+        "heavy volume (3.4x the 20-day average)"
+      ],
+      "summary": "BPCL -0.71%: market-wide move (Nifty -0.63%); gap at the open (-1.06%) \u2014 overnight news or global cues; heavy volume (3.4x the 20-day average)",
+      "headlines": [
+        {
+          "title": "BPCL Share Price",
+          "source": "Upstox",
+          "score": 0.0
+        },
+        {
+          "title": "Oil India, ONGC over IOC, BPCL, HPCL: JM Financial backs upstream, stays cautious on OMCs",
+          "source": "ET EnergyWorld",
+          "score": 0.0
+        },
+        {
+          "title": "Gold Swings as Traders Assess Fed Rate Path Amid Mideast Worries",
+          "source": "Livemint",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "FEDERALBNK",
+      "day_pct": 1.24,
+      "market_pct": -0.63,
+      "residual_pct": 1.86,
+      "gap_pct": -0.29,
+      "intraday_pct": 1.53,
+      "vol_ratio": 0.73,
+      "news_tone": "neutral",
+      "news_score": 0.0,
+      "news_aligned": null,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 1.86%",
+        "intraday move after the open (+1.53%)"
+      ],
+      "summary": "FEDERALBNK +1.24%: stock-specific: outperformed Nifty by 1.86%; intraday move after the open (+1.53%)",
+      "headlines": [
+        {
+          "title": "Federal Bank holds virtual investor meets with HSBC, RARE, Franklin, WCM",
+          "source": "scanx.trade",
+          "score": 0.0
+        },
+        {
+          "title": "Gold Swings as Traders Assess Fed Rate Path Amid Mideast Worries",
+          "source": "Livemint",
+          "score": 0.0
+        },
+        {
+          "title": "Jana Small Finance Bank Falls as Federal Bank Rules Out Stake",
+          "source": "Kalkine India",
+          "score": -1.0
+        }
+      ]
+    },
+    {
+      "symbol": "COALINDIA",
+      "day_pct": -1.28,
+      "market_pct": -0.63,
+      "residual_pct": -0.65,
+      "gap_pct": -0.69,
+      "intraday_pct": -0.59,
+      "vol_ratio": 0.79,
+      "news_tone": "negative",
+      "news_score": -1.0,
+      "news_aligned": true,
+      "drivers": [
+        "news tone negative, consistent with the move"
+      ],
+      "summary": "COALINDIA -1.28%: news tone negative, consistent with the move",
+      "headlines": [
+        {
+          "title": "Coal India Share Price Falls in Second Straight Session",
+          "source": "Univest",
+          "score": -1.0
+        },
+        {
+          "title": "Indian Oil (IOC) Share Price Today, Live Chart & News",
+          "source": "TechGraph",
+          "score": 0.0
+        },
+        {
+          "title": "Gold Swings as Traders Assess Fed Rate Path Amid Mideast Worries",
+          "source": "Livemint",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "NYKAA",
+      "day_pct": -2.94,
+      "market_pct": -0.63,
+      "residual_pct": -2.31,
+      "gap_pct": -1.11,
+      "intraday_pct": -1.86,
+      "vol_ratio": 0.69,
+      "news_tone": "positive",
+      "news_score": 1.0,
+      "news_aligned": false,
+      "drivers": [
+        "stock-specific: underperformed Nifty by 2.31%",
+        "intraday move after the open (-1.86%)",
+        "news tone positive, but the price went the other way \u2014 news did not explain it"
+      ],
+      "summary": "NYKAA -2.94%: stock-specific: underperformed Nifty by 2.31%; intraday move after the open (-1.86%); news tone positive, but the price went the other way \u2014 news did not explain it",
+      "headlines": [
+        {
+          "title": "Chartist Talk: Will Nifty 50\u2019s technical rebound sustain? Milan Vaishnav advises holding Laurus Labs,...",
+          "source": "Moneycontrol.com",
+          "score": 1.0
+        },
+        {
+          "title": "Ingredient awareness reshaping India\u2019s beauty market: Nykaa",
+          "source": "The Financial Express",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "SAIL",
+      "day_pct": 0.35,
+      "market_pct": -0.63,
+      "residual_pct": 0.98,
+      "gap_pct": -0.59,
+      "intraday_pct": 0.95,
+      "vol_ratio": 0.47,
+      "news_tone": "neutral",
+      "news_score": 0.0,
+      "news_aligned": null,
+      "drivers": [
+        "quiet \u2014 no clear driver"
+      ],
+      "summary": "SAIL +0.35%: quiet \u2014 no clear driver",
+      "headlines": [
+        {
+          "title": "Tata Steel's Valuation Discount Unwarranted, Says HSBC; Retains Buy Call, Check Target Price",
+          "source": "NDTV Profit",
+          "score": 1.0
+        },
+        {
+          "title": "CarTrade Tech Yearly results, Financial Summary",
+          "source": "The Economic Times",
+          "score": 0.0
+        },
+        {
+          "title": "JTL Industries Share Price Today: 8.2% Decline Analysis",
+          "source": "Univest",
+          "score": -1.0
+        }
+      ]
+    },
+    {
+      "symbol": "WIPRO",
+      "day_pct": 0.38,
+      "market_pct": -0.63,
+      "residual_pct": 1.0,
+      "gap_pct": 0.7,
+      "intraday_pct": -0.33,
+      "vol_ratio": 1.37,
+      "news_tone": "positive",
+      "news_score": 0.34,
+      "news_aligned": null,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 1.00%"
+      ],
+      "summary": "WIPRO +0.38%: stock-specific: outperformed Nifty by 1.00%",
+      "headlines": [
+        {
+          "title": "Wipro Share Price",
+          "source": "Upstox",
+          "score": 0.0
+        },
+        {
+          "title": "Why Wipro Share Price is Rising",
+          "source": "Equitymaster",
+          "score": 1.0
+        },
+        {
+          "title": "Market Trading Guide: Wipro among 5 stock recommendations for Thursday",
+          "source": "The Economic Times",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "PNB",
+      "day_pct": -0.45,
+      "market_pct": -0.63,
+      "residual_pct": 0.18,
+      "gap_pct": 0.0,
+      "intraday_pct": -0.45,
+      "vol_ratio": 1.07,
+      "news_tone": "neutral",
+      "news_score": 0.0,
+      "news_aligned": null,
+      "drivers": [
+        "market-wide move (Nifty -0.63%)"
+      ],
+      "summary": "PNB -0.45%: market-wide move (Nifty -0.63%)",
+      "headlines": [
+        {
+          "title": "UCO Bank Share Price Fall Streak in second straight session",
+          "source": "Univest",
+          "score": -1.0
+        },
+        {
+          "title": "Nifty PSU vs Private Bank: Which banking index looks stronger on charts?",
+          "source": "Business Standard",
+          "score": 0.0
+        },
+        {
+          "title": "PNB Housing fixes AGM date, recommends \u20b98 dividend",
+          "source": "scanx.trade",
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "symbol": "POWERGRID",
+      "day_pct": -1.78,
+      "market_pct": -0.63,
+      "residual_pct": -1.16,
+      "gap_pct": -1.25,
+      "intraday_pct": -0.54,
+      "vol_ratio": 0.53,
+      "news_tone": "negative",
+      "news_score": -1.0,
+      "news_aligned": true,
+      "drivers": [
+        "stock-specific: underperformed Nifty by 1.16%",
+        "gap at the open (-1.25%) \u2014 overnight news or global cues",
+        "news tone negative, consistent with the move"
+      ],
+      "summary": "POWERGRID -1.78%: stock-specific: underperformed Nifty by 1.16%; gap at the open (-1.25%) \u2014 overnight news or global cues; news tone negative, consistent with the move",
+      "headlines": [
+        {
+          "title": "Power Grid (POWERGRID) Share Price Today, Live Chart & News",
+          "source": "TechGraph",
+          "score": 0.0
+        },
+        {
+          "title": "Stock Price Movement: Power companies demonstrate resilience despite stress in overall equity markets",
+          "source": "Powerline Magazine",
+          "score": 0.0
+        },
+        {
+          "title": "Gold Swings as Traders Assess Fed Rate Path Amid Mideast Worries",
+          "source": "Livemint",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "ITC",
+      "day_pct": -1.45,
+      "market_pct": -0.63,
+      "residual_pct": -0.82,
+      "gap_pct": -0.76,
+      "intraday_pct": -0.69,
+      "vol_ratio": 0.57,
+      "news_tone": "positive",
+      "news_score": 1.0,
+      "news_aligned": false,
+      "drivers": [
+        "news tone positive, but the price went the other way \u2014 news did not explain it"
+      ],
+      "summary": "ITC -1.45%: news tone positive, but the price went the other way \u2014 news did not explain it",
+      "headlines": [
+        {
+          "title": "Cigarette Stock: Should ITC Ltd Split Its Business Into 1:2? What's Smoking In This FMCG Giant?",
+          "source": "Goodreturns",
+          "score": 0.0
+        },
+        {
+          "title": "ITC stock: November 2 board meeting sets the date for ITC stock results",
+          "source": "AD HOC NEWS",
+          "score": 0.0
+        },
+        {
+          "title": "Reliance Industries (RELIANCE) Share Price Today & Chart",
+          "source": "TechGraph",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "IRCTC",
+      "day_pct": 0.13,
+      "market_pct": -0.63,
+      "residual_pct": 0.76,
+      "gap_pct": 0.0,
+      "intraday_pct": 0.13,
+      "vol_ratio": 0.72,
+      "news_tone": "negative",
+      "news_score": -0.67,
+      "news_aligned": null,
+      "drivers": [
+        "quiet \u2014 no clear driver"
+      ],
+      "summary": "IRCTC +0.13%: quiet \u2014 no clear driver",
+      "headlines": [
+        {
+          "title": "IRCTC Share Price Today - IRCTC on NSE/BSE",
+          "source": "scanx.trade",
+          "score": 0.0
+        },
+        {
+          "title": "IRFC, RVNL, IRCON, RITES, BEML, Jupitar Wagons, IRCTC, Concor: Are Railway Stocks Attractive Before Q1 Results",
+          "source": "Goodreturns",
+          "score": 0.0
+        },
+        {
+          "title": "M&M Financial share price plunges 10% after Q2 results 2026 but brokerages divided on outlook | Buy, sell or hold?",
+          "source": "Livemint",
+          "score": -0.33
+        }
+      ]
+    }
+  ],
+  "trades": [],
+  "learning": {
+    "n_obs": 5,
+    "n_decisive": 3,
+    "accuracy": 0.0,
+    "avg_move_by_tone": {
+      "none": 3.27,
+      "positive": -1.44,
+      "neutral": -0.02
+    },
+    "count_by_tone": {
+      "none": 1,
+      "positive": 3,
+      "neutral": 1
+    },
+    "adjustment_active": false,
+    "needs_more": 27
+  }
+}
