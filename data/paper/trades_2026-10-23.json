@@ -1,0 +1,194 @@
+[
+  {
+    "timestamp": "2026-10-23T05:42:33.301420",
+    "symbol": "TATASTEEL",
+    "transaction_type": "BUY",
+    "quantity": 9,
+    "fill_price": 166.2,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-23T05:42:34.056862",
+    "symbol": "NYKAA",
+    "transaction_type": "BUY",
+    "quantity": 4,
+    "fill_price": 312.81,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-23T05:42:34.891904",
+    "symbol": "WIPRO",
+    "transaction_type": "BUY",
+    "quantity": 5,
+    "fill_price": 191.49,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-23T05:44:39.449251",
+    "symbol": "SAIL",
+    "transaction_type": "BUY",
+    "quantity": 5,
+    "fill_price": 163.26,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-23T07:04:13.124137",
+    "symbol": "TATASTEEL",
+    "transaction_type": "SELL",
+    "quantity": 9,
+    "fill_price": 163.6,
+    "pnl": -23.39999999999995
+  },
+  {
+    "timestamp": "2026-10-23T07:12:35.381548",
+    "symbol": "NYKAA",
+    "transaction_type": "SELL",
+    "quantity": 4,
+    "fill_price": 313.44,
+    "pnl": 2.519999999999982
+  },
+  {
+    "timestamp": "2026-10-23T07:12:36.682909",
+    "symbol": "WIPRO",
+    "transaction_type": "SELL",
+    "quantity": 5,
+    "fill_price": 189.2,
+    "pnl": -11.450000000000102
+  },
+  {
+    "timestamp": "2026-10-23T07:14:40.235505",
+    "symbol": "SAIL",
+    "transaction_type": "SELL",
+    "quantity": 5,
+    "fill_price": 161.58,
+    "pnl": -8.399999999999892
+  },
+  {
+    "timestamp": "2026-10-23T07:30:15.469978",
+    "symbol": "TATASTEEL",
+    "transaction_type": "BUY",
+    "quantity": 9,
+    "fill_price": 164.72,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-23T07:30:16.293511",
+    "symbol": "CANBK",
+    "transaction_type": "BUY",
+    "quantity": 10,
+    "fill_price": 116.0,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-23T07:30:17.008921",
+    "symbol": "NYKAA",
+    "transaction_type": "BUY",
+    "quantity": 3,
+    "fill_price": 313.64,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-23T07:30:17.766661",
+    "symbol": "NTPC",
+    "transaction_type": "BUY",
+    "quantity": 3,
+    "fill_price": 293.4,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-23T08:21:58.635712",
+    "symbol": "TATASTEEL",
+    "transaction_type": "SELL",
+    "quantity": 9,
+    "fill_price": 166.02,
+    "pnl": 11.700000000000102
+  },
+  {
+    "timestamp": "2026-10-23T08:22:16.780858",
+    "symbol": "WIPRO",
+    "transaction_type": "BUY",
+    "quantity": 5,
+    "fill_price": 190.03,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-23T09:00:17.871811",
+    "symbol": "CANBK",
+    "transaction_type": "SELL",
+    "quantity": 10,
+    "fill_price": 116.15,
+    "pnl": 1.5000000000000568
+  },
+  {
+    "timestamp": "2026-10-23T09:00:18.368487",
+    "symbol": "NYKAA",
+    "transaction_type": "SELL",
+    "quantity": 3,
+    "fill_price": 316.99,
+    "pnl": 10.050000000000068
+  },
+  {
+    "timestamp": "2026-10-23T09:00:18.871495",
+    "symbol": "NTPC",
+    "transaction_type": "SELL",
+    "quantity": 3,
+    "fill_price": 295.82,
+    "pnl": 7.260000000000048
+  },
+  {
+    "timestamp": "2026-10-23T09:01:34.778662",
+    "symbol": "CANBK",
+    "transaction_type": "BUY",
+    "quantity": 11,
+    "fill_price": 116.28,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-23T09:09:52.189498",
+    "symbol": "IDFCFIRSTB",
+    "transaction_type": "BUY",
+    "quantity": 16,
+    "fill_price": 72.27,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-23T09:11:57.013523",
+    "symbol": "BANKBARODA",
+    "transaction_type": "BUY",
+    "quantity": 4,
+    "fill_price": 229.86,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-23T09:30:05.935111",
+    "symbol": "WIPRO",
+    "transaction_type": "SELL",
+    "quantity": 5,
+    "fill_price": 189.52,
+    "pnl": -2.5499999999999545
+  },
+  {
+    "timestamp": "2026-10-23T09:30:06.699107",
+    "symbol": "CANBK",
+    "transaction_type": "SELL",
+    "quantity": 11,
+    "fill_price": 115.66,
+    "pnl": -6.82000000000005
+  },
+  {
+    "timestamp": "2026-10-23T09:30:07.457041",
+    "symbol": "IDFCFIRSTB",
+    "transaction_type": "SELL",
+    "quantity": 16,
+    "fill_price": 72.28,
+    "pnl": 0.16000000000008185
+  },
+  {
+    "timestamp": "2026-10-23T09:30:08.196940",
+    "symbol": "BANKBARODA",
+    "transaction_type": "SELL",
+    "quantity": 4,
+    "fill_price": 229.87,
+    "pnl": 0.03999999999996362
+  }
+]
