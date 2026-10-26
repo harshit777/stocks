@@ -1,56 +1,55 @@
-[15:29:59] Training start — 10 symbols, 180 days, 5 CV folds
-[15:29:59] 
+[17:01:09] Training start — 10 symbols, 180 days, 5 CV folds
+[17:01:09] 
 ── RELIANCE ──
-[15:30:02]   Fetched 9129 5m candles for RELIANCE
-[15:30:05]   [RELIANCE] trades=14 win=50.0% net_pnl=₹-7.06 expectancy=₹-0.50 max_dd=₹30.37 sharpe=-5.93 params={'buy_threshold': 0.15, 'sell_threshold': 0.85, 'stop_loss_pct': 0.015, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
-[15:30:05]   Features: 14 samples, 7 profitable / 7 loss
-[15:30:05] 
+[17:01:10]   Fetched 8976 5m candles for RELIANCE
+[17:01:13]   [RELIANCE] trades=7 win=42.9% net_pnl=₹-1.62 expectancy=₹-0.23 max_dd=₹14.03 sharpe=-2.97 params={'buy_threshold': 0.15, 'sell_threshold': 0.75, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
+[17:01:13] 
 ── TCS ──
-[15:30:06]   Fetched 9129 5m candles for TCS
-[15:30:08]   [TCS] trades=16 win=43.8% net_pnl=₹+138.68 expectancy=₹+8.67 max_dd=₹120.63 sharpe=28.18 params={'buy_threshold': 0.25, 'sell_threshold': 0.8, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
-[15:30:08]   Features: 16 samples, 7 profitable / 9 loss
-[15:30:08] 
+[17:01:14]   Fetched 8976 5m candles for TCS
+[17:01:17]   [TCS] trades=16 win=43.8% net_pnl=₹+147.98 expectancy=₹+9.25 max_dd=₹120.63 sharpe=30.25 params={'buy_threshold': 0.25, 'sell_threshold': 0.8, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
+[17:01:17]   Features: 16 samples, 7 profitable / 9 loss
+[17:01:17] 
 ── INFY ──
-[15:30:10]   Fetched 9129 5m candles for INFY
-[15:30:12]   [INFY] trades=17 win=70.6% net_pnl=₹+157.51 expectancy=₹+9.27 max_dd=₹15.26 sharpe=94.17 params={'buy_threshold': 0.15, 'sell_threshold': 0.75, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
-[15:30:12]   Features: 17 samples, 12 profitable / 5 loss
-[15:30:12] 
+[17:01:18]   Fetched 8976 5m candles for INFY
+[17:01:20]   [INFY] trades=16 win=68.8% net_pnl=₹+154.04 expectancy=₹+9.63 max_dd=₹15.26 sharpe=95.48 params={'buy_threshold': 0.15, 'sell_threshold': 0.75, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
+[17:01:20]   Features: 16 samples, 11 profitable / 5 loss
+[17:01:20] 
 ── HDFCBANK ──
-[15:30:13]   Fetched 9129 5m candles for HDFCBANK
-[15:30:15]   [HDFCBANK] trades=9 win=22.2% net_pnl=₹-79.44 expectancy=₹-8.83 max_dd=₹47.78 sharpe=-91.56 params={'buy_threshold': 0.15, 'sell_threshold': 0.75, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
-[15:30:15] 
+[17:01:22]   Fetched 8976 5m candles for HDFCBANK
+[17:01:24]   [HDFCBANK] trades=7 win=42.9% net_pnl=₹-36.06 expectancy=₹-5.15 max_dd=₹42.81 sharpe=-59.68 params={'buy_threshold': 0.15, 'sell_threshold': 0.85, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
+[17:01:24] 
 ── ICICIBANK ──
-[15:30:17]   Fetched 9129 5m candles for ICICIBANK
-[15:30:19]   [ICICIBANK] trades=5 win=20.0% net_pnl=₹-1.07 expectancy=₹-0.21 max_dd=₹19.06 sharpe=-2.54 params={'buy_threshold': 0.25, 'sell_threshold': 0.75, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
-[15:30:19] 
+[17:01:26]   Fetched 8976 5m candles for ICICIBANK
+[17:01:28]   [ICICIBANK] trades=5 win=20.0% net_pnl=₹-1.07 expectancy=₹-0.21 max_dd=₹19.06 sharpe=-2.54 params={'buy_threshold': 0.25, 'sell_threshold': 0.75, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
+[17:01:28] 
 ── SBIN ──
-[15:30:20]   Fetched 9129 5m candles for SBIN
-[15:30:22]   [SBIN] trades=18 win=44.4% net_pnl=₹+9.29 expectancy=₹+0.52 max_dd=₹12.33 sharpe=11.07 params={'buy_threshold': 0.15, 'sell_threshold': 0.85, 'stop_loss_pct': 0.015, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
-[15:30:22]   Features: 18 samples, 8 profitable / 10 loss
-[15:30:22] 
+[17:01:29]   Fetched 8976 5m candles for SBIN
+[17:01:32]   [SBIN] trades=18 win=44.4% net_pnl=₹+9.29 expectancy=₹+0.52 max_dd=₹12.33 sharpe=11.07 params={'buy_threshold': 0.15, 'sell_threshold': 0.85, 'stop_loss_pct': 0.015, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
+[17:01:32]   Features: 18 samples, 8 profitable / 10 loss
+[17:01:32] 
 ── AXISBANK ──
-[15:30:24]   Fetched 9129 5m candles for AXISBANK
-[15:30:26]   [AXISBANK] trades=9 win=66.7% net_pnl=₹+22.53 expectancy=₹+2.50 max_dd=₹9.11 sharpe=46.54 params={'buy_threshold': 0.15, 'sell_threshold': 0.75, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
-[15:30:26] 
+[17:01:33]   Fetched 8976 5m candles for AXISBANK
+[17:01:36]   [AXISBANK] trades=9 win=66.7% net_pnl=₹+30.92 expectancy=₹+3.44 max_dd=₹9.11 sharpe=53.36 params={'buy_threshold': 0.15, 'sell_threshold': 0.75, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
+[17:01:36] 
 ── WIPRO ──
-[15:30:28]   Fetched 9129 5m candles for WIPRO
-[15:30:30]   [WIPRO] trades=15 win=60.0% net_pnl=₹+95.84 expectancy=₹+6.39 max_dd=₹46.61 sharpe=41.01 params={'buy_threshold': 0.15, 'sell_threshold': 0.85, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
-[15:30:30]   Features: 15 samples, 9 profitable / 6 loss
-[15:30:30] 
+[17:01:37]   Fetched 8976 5m candles for WIPRO
+[17:01:40]   [WIPRO] trades=14 win=50.0% net_pnl=₹+70.15 expectancy=₹+5.01 max_dd=₹36.48 sharpe=31.11 params={'buy_threshold': 0.15, 'sell_threshold': 0.85, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
+[17:01:40]   Features: 14 samples, 7 profitable / 7 loss
+[17:01:40] 
 ── LT ──
-[15:30:31]   Fetched 9129 5m candles for LT
-[15:30:33]   [LT] trades=9 win=55.6% net_pnl=₹+57.98 expectancy=₹+6.44 max_dd=₹41.92 sharpe=31.04 params={'buy_threshold': 0.2, 'sell_threshold': 0.85, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
-[15:30:33] 
+[17:01:41]   Fetched 8976 5m candles for LT
+[17:01:44]   [LT] trades=9 win=55.6% net_pnl=₹+57.98 expectancy=₹+6.44 max_dd=₹41.92 sharpe=31.04 params={'buy_threshold': 0.15, 'sell_threshold': 0.85, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
+[17:01:44] 
 ── BAJFINANCE ──
-[15:30:34]   Fetched 9129 5m candles for BAJFINANCE
-[15:30:37]   [BAJFINANCE] trades=12 win=33.3% net_pnl=₹-44.15 expectancy=₹-3.68 max_dd=₹71.47 sharpe=-42.73 params={'buy_threshold': 0.15, 'sell_threshold': 0.75, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
-[15:30:37]   Features: 12 samples, 4 profitable / 8 loss
-[15:30:37] 
-Total samples: 92 | positive rate: 51.1%
-[15:30:37] 
+[17:01:45]   Fetched 8976 5m candles for BAJFINANCE
+[17:01:48]   [BAJFINANCE] trades=12 win=25.0% net_pnl=₹-49.10 expectancy=₹-4.09 max_dd=₹75.01 sharpe=-47.92 params={'buy_threshold': 0.15, 'sell_threshold': 0.75, 'stop_loss_pct': 0.02, 'target_pct': 0.02, 'trailing_stop_activation': 0.01, 'trailing_stop_distance': 0.008, 'max_hold_candles': 45, 'min_profit_margin': 0.007, 'risk_reward_min': 1.0, 'max_position_pct': 0.15, 'capital': 10000.0}
+[17:01:48]   Features: 12 samples, 3 profitable / 9 loss
+[17:01:48] 
+Total samples: 76 | positive rate: 47.4%
+[17:01:48] 
 Walk-forward CV (5 folds):
-[15:30:37]   fold 1: acc=0.400 auc=0.500 prec=0.000 rec=0.000  (train=17, test=15)
-[15:30:37]   fold 2: acc=0.333 auc=0.500 prec=0.000 rec=0.000  (train=32, test=15)
-[15:30:37]   fold 3: acc=0.467 auc=0.304 prec=0.467 rec=1.000  (train=47, test=15)
-[15:30:37]   fold 4: acc=0.533 auc=0.536 prec=0.571 rec=0.500  (train=62, test=15)
-[15:30:38]   fold 5: acc=0.667 auc=0.611 prec=0.600 rec=0.500  (train=77, test=15)
+[17:01:48]   fold 1: acc=0.333 auc=0.500 prec=0.000 rec=0.000  (train=16, test=12)
+[17:01:48]   fold 2: acc=0.583 auc=0.500 prec=0.583 rec=1.000  (train=28, test=12)
+[17:01:48]   fold 3: acc=0.333 auc=0.578 prec=0.333 rec=1.000  (train=40, test=12)
+[17:01:49]   fold 4: acc=0.750 auc=0.771 prec=0.750 rec=0.857  (train=52, test=12)
+[17:01:49]   fold 5: acc=0.833 auc=0.889 prec=0.667 rec=0.667  (train=64, test=12)
