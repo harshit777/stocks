@@ -1,0 +1,453 @@
+{
+  "date": "2026-10-26",
+  "market": {
+    "nifty_pct": 0.5,
+    "vix": 17.67,
+    "regime": "trending",
+    "tone": {
+      "label": "negative",
+      "score": -0.5,
+      "n": 10
+    },
+    "headlines": [
+      {
+        "title": "Stock market declines in early trade; Sensex drops over 500 points",
+        "source": "The Hindu",
+        "score": -1.0
+      },
+      {
+        "title": "Sensex, Nifty Fall as Asia Weak, Oil High, Middle East Tense",
+        "source": "HDFC Sky",
+        "score": -1.0
+      },
+      {
+        "title": "Stock Market Today: Sensex, Nifty decline; List Of Laggards",
+        "source": "ETV Bharat",
+        "score": -1.0
+      },
+      {
+        "title": "Indian Stocks Open Lower as Nifty and Sensex Extend Declines",
+        "source": "Investing.com India",
+        "score": -1.0
+      },
+      {
+        "title": "Why is the stock market down today? Sensex drops over 600 points, Nifty drops below 22,400 - Top 3 reasons explained",
+        "source": "Livemint",
+        "score": -1.0
+      }
+    ],
+    "timeline": [
+      {
+        "time": "10:30",
+        "nifty_pct": 0.17,
+        "market_tone": -0.75
+      },
+      {
+        "time": "11:01",
+        "nifty_pct": -0.04,
+        "market_tone": -0.5
+      },
+      {
+        "time": "11:32",
+        "nifty_pct": -0.14,
+        "market_tone": -0.5
+      },
+      {
+        "time": "12:03",
+        "nifty_pct": 0.09,
+        "market_tone": -0.5
+      },
+      {
+        "time": "12:34",
+        "nifty_pct": 0.1,
+        "market_tone": -0.584
+      },
+      {
+        "time": "13:05",
+        "nifty_pct": 0.01,
+        "market_tone": -0.5
+      },
+      {
+        "time": "13:36",
+        "nifty_pct": 0.22,
+        "market_tone": -0.75
+      },
+      {
+        "time": "14:06",
+        "nifty_pct": 0.28,
+        "market_tone": -0.5
+      },
+      {
+        "time": "14:37",
+        "nifty_pct": 0.35,
+        "market_tone": -0.5
+      },
+      {
+        "time": "15:00",
+        "nifty_pct": 0.5,
+        "market_tone": -0.5
+      }
+    ],
+    "breadth": {
+      "advancers": 7,
+      "decliners": 3,
+      "avg_move_pct": 0.63
+    }
+  },
+  "stocks": [
+    {
+      "symbol": "BPCL",
+      "day_pct": 2.32,
+      "market_pct": 0.5,
+      "residual_pct": 1.83,
+      "gap_pct": -0.69,
+      "intraday_pct": 3.04,
+      "vol_ratio": 0.83,
+      "news_tone": "positive",
+      "news_score": 0.34,
+      "news_aligned": true,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 1.83%",
+        "intraday move after the open (+3.04%)",
+        "news tone positive, consistent with the move"
+      ],
+      "summary": "BPCL +2.32%: stock-specific: outperformed Nifty by 1.83%; intraday move after the open (+3.04%); news tone positive, consistent with the move",
+      "headlines": [
+        {
+          "title": "Top stocks to buy: Adani Energy, AU Small Finance Bank, BPCL, IDFC First Bank \u2014 Jefferies sees up to 62% upside | Target",
+          "source": "Livemint",
+          "score": 1.0
+        },
+        {
+          "title": "BPCL, HPCL and IOC gain, while paints, tyres and chemical stocks fall as crude oil prices drop 2%",
+          "source": "Upstox",
+          "score": -0.33
+        },
+        {
+          "title": "Stocks in news: Infosys, Kotak Mahindra Bank, YES Bank, Raymond, BPCL, Coforge and Senco Gold",
+          "source": "The Economic Times",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "IDFCFIRSTB",
+      "day_pct": -1.11,
+      "market_pct": 0.5,
+      "residual_pct": -1.6,
+      "gap_pct": 0.82,
+      "intraday_pct": -1.91,
+      "vol_ratio": 0.97,
+      "news_tone": "positive",
+      "news_score": 1.0,
+      "news_aligned": false,
+      "drivers": [
+        "stock-specific: underperformed Nifty by 1.60%",
+        "intraday move after the open (-1.91%)",
+        "news tone positive, but the price went the other way \u2014 news did not explain it"
+      ],
+      "summary": "IDFCFIRSTB -1.11%: stock-specific: underperformed Nifty by 1.60%; intraday move after the open (-1.91%); news tone positive, but the price went the other way \u2014 news did not explain it",
+      "headlines": [
+        {
+          "title": "IDFC FIRST Bank Publishes Business Responsibility and Sustainability Report for FY 2025-26",
+          "source": "scanx.trade",
+          "score": 0.0
+        },
+        {
+          "title": "Price Action: IDFC First Bank sheds 3% as Goldman Sachs maintains 'neutral' rating; Jyoti Structures gains...",
+          "source": "Moneycontrol.com",
+          "score": 1.0
+        },
+        {
+          "title": "IDFC First Bank Q2 Review: Motilal Oswal Trims Target Price Despite Inline Numbers; Here's Why",
+          "source": "NDTV Profit",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "WIPRO",
+      "day_pct": -0.19,
+      "market_pct": 0.5,
+      "residual_pct": -0.69,
+      "gap_pct": -2.26,
+      "intraday_pct": 2.12,
+      "vol_ratio": 0.2,
+      "news_tone": "positive",
+      "news_score": 0.33,
+      "news_aligned": null,
+      "drivers": [
+        "gap at the open (-2.26%) \u2014 overnight news or global cues"
+      ],
+      "summary": "WIPRO -0.19%: gap at the open (-2.26%) \u2014 overnight news or global cues",
+      "headlines": [
+        {
+          "title": "TCS, HCL, Wipro, Infosys Bleeding: Why Are IT Stocks Down? Check Q1 Result Dates, Preview, Dividend Rewards",
+          "source": "Goodreturns",
+          "score": 1.0
+        },
+        {
+          "title": "Infosys shares fall 4% after IT major lowers FY27 guidance. What are Goldman Sachs, Nomura, others saying?",
+          "source": "The Economic Times",
+          "score": -1.0
+        },
+        {
+          "title": "Nifty risks 21,500, HDFC Bank eyes \u20b9640, IT rally shows fatigue: Anand James",
+          "source": "The Economic Times",
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "symbol": "COALINDIA",
+      "day_pct": 1.06,
+      "market_pct": 0.5,
+      "residual_pct": 0.56,
+      "gap_pct": 0.0,
+      "intraday_pct": 1.06,
+      "vol_ratio": 0.17,
+      "news_tone": "positive",
+      "news_score": 1.0,
+      "news_aligned": true,
+      "drivers": [
+        "intraday move after the open (+1.06%)",
+        "news tone positive, consistent with the move"
+      ],
+      "summary": "COALINDIA +1.06%: intraday move after the open (+1.06%); news tone positive, consistent with the move",
+      "headlines": [
+        {
+          "title": "Coal India Limited Board Meeting Set for April 27, 2026 to Consider Q4FY26 Results",
+          "source": "scanx.trade",
+          "score": 0.0
+        },
+        {
+          "title": "PSU Q2 results 2026 preview: BEL, Coal India, IGL - Earnings estimate, brokerage target price, returns potential",
+          "source": "Livemint",
+          "score": 0.0
+        },
+        {
+          "title": "Bharat Coking Coal Q2 Results: PSU Coal India Arm Swings To Profit, Revenue Jumps 40% YoY",
+          "source": "NDTV Profit",
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "symbol": "NYKAA",
+      "day_pct": 3.02,
+      "market_pct": 0.5,
+      "residual_pct": 2.53,
+      "gap_pct": -1.06,
+      "intraday_pct": 4.13,
+      "vol_ratio": 0.1,
+      "news_tone": "none",
+      "news_score": 0.0,
+      "news_aligned": null,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 2.53%",
+        "intraday move after the open (+4.13%)"
+      ],
+      "summary": "NYKAA +3.02%: stock-specific: outperformed Nifty by 2.53%; intraday move after the open (+4.13%)",
+      "headlines": [
+        {
+          "title": "Nykaa shareholders approve FY26 financials, re-appoint directors",
+          "source": "scanx.trade",
+          "score": 0.0
+        },
+        {
+          "title": "Adwaita and Sanjay Nair on Building Nykaa, KKR Lessons and Tough Calls | The Quest",
+          "source": "The Economic Times",
+          "score": 0.0
+        },
+        {
+          "title": "Paytm Share Price",
+          "source": "Upstox",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "NTPC",
+      "day_pct": 0.42,
+      "market_pct": 0.5,
+      "residual_pct": -0.08,
+      "gap_pct": -0.08,
+      "intraday_pct": 0.5,
+      "vol_ratio": 0.15,
+      "news_tone": "positive",
+      "news_score": 1.0,
+      "news_aligned": null,
+      "drivers": [
+        "market-wide move (Nifty +0.50%)"
+      ],
+      "summary": "NTPC +0.42%: market-wide move (Nifty +0.50%)",
+      "headlines": [
+        {
+          "title": "Stock recommendations for 26 October from MarketSmith India",
+          "source": "Livemint",
+          "score": 0.0
+        },
+        {
+          "title": "Stock recommendations for 26 October from MarketSmith India",
+          "source": "TradingView",
+          "score": 0.0
+        },
+        {
+          "title": "Dividend buzz: Dalmia Bharat, Mazagon Dock, Coal India, NTPC, others to consider payouts this week - Check full list",
+          "source": "Livemint",
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "symbol": "TATASTEEL",
+      "day_pct": 0.76,
+      "market_pct": 0.5,
+      "residual_pct": 0.27,
+      "gap_pct": 0.0,
+      "intraday_pct": 0.76,
+      "vol_ratio": 0.19,
+      "news_tone": "none",
+      "news_score": 0.0,
+      "news_aligned": null,
+      "drivers": [
+        "market-wide move (Nifty +0.50%)"
+      ],
+      "summary": "TATASTEEL +0.76%: market-wide move (Nifty +0.50%)",
+      "headlines": [
+        {
+          "title": "Chandrasekaran, Noel in focus ahead of Tata Steel, Tata Sons board meets",
+          "source": "Business Standard",
+          "score": 0.0
+        },
+        {
+          "title": "Stock recommendations for 26 October from MarketSmith India",
+          "source": "Livemint",
+          "score": 0.0
+        },
+        {
+          "title": "Chandrasekaran, Noel Tata likely to meet in November amid Tata boardroom tussle",
+          "source": "Business Today",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "POWERGRID",
+      "day_pct": -0.26,
+      "market_pct": 0.5,
+      "residual_pct": -0.76,
+      "gap_pct": -0.04,
+      "intraday_pct": -0.22,
+      "vol_ratio": 0.21,
+      "news_tone": "positive",
+      "news_score": 0.33,
+      "news_aligned": null,
+      "drivers": [
+        "quiet \u2014 no clear driver"
+      ],
+      "summary": "POWERGRID -0.26%: quiet \u2014 no clear driver",
+      "headlines": [
+        {
+          "title": "KEC International shares in focus on transmission lines orders from Power Grid",
+          "source": "Moneycontrol.com",
+          "score": 0.0
+        },
+        {
+          "title": "KEC International shares in focus on Monday Oct 26 after \u20b92872 cr PGCIL order win; YTD orders mark crosses \u20b913.5k cr",
+          "source": "Livemint",
+          "score": 1.0
+        },
+        {
+          "title": "PFC shareholders approve FY26 financials, dividend; board appointments cleared",
+          "source": "scanx.trade",
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "symbol": "BANKBARODA",
+      "day_pct": 0.17,
+      "market_pct": 0.5,
+      "residual_pct": -0.33,
+      "gap_pct": -0.82,
+      "intraday_pct": 1.0,
+      "vol_ratio": 0.3,
+      "news_tone": "positive",
+      "news_score": 0.67,
+      "news_aligned": null,
+      "drivers": [
+        "market-wide move (Nifty +0.50%)"
+      ],
+      "summary": "BANKBARODA +0.17%: market-wide move (Nifty +0.50%)",
+      "headlines": [
+        {
+          "title": "Nifty risks 21,500, HDFC Bank eyes \u20b9640, IT rally shows fatigue: Anand James",
+          "source": "The Economic Times",
+          "score": 1.0
+        },
+        {
+          "title": "Anawil Wire & Engineering Ltd. Share Price Live Today",
+          "source": "CNBC TV18",
+          "score": 0.0
+        },
+        {
+          "title": "Indian Bank hikes special FD rates to 6.80%: How it compares with PSUs, private banks, small finance banks",
+          "source": "Business Today",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "ONGC",
+      "day_pct": 0.09,
+      "market_pct": 0.5,
+      "residual_pct": -0.41,
+      "gap_pct": -0.55,
+      "intraday_pct": 0.64,
+      "vol_ratio": 0.24,
+      "news_tone": "none",
+      "news_score": 0.0,
+      "news_aligned": null,
+      "drivers": [
+        "market-wide move (Nifty +0.50%)"
+      ],
+      "summary": "ONGC +0.09%: market-wide move (Nifty +0.50%)",
+      "headlines": [
+        {
+          "title": "Trade Spotlight: How should you trade Bharti Airtel, ONGC, Anand Rathi Wealth, JSW Cement, Firstsource...",
+          "source": "Moneycontrol.com",
+          "score": 0.0
+        },
+        {
+          "title": "Top 30 Stocks for New Investors in 2026",
+          "source": "Samco",
+          "score": 0.0
+        },
+        {
+          "title": "IndiGo, Air India clear runway for shift to Navi Mumbai airport",
+          "source": "Livemint",
+          "score": 0.0
+        }
+      ]
+    }
+  ],
+  "trades": [],
+  "learning": {
+    "n_obs": 5,
+    "n_decisive": 3,
+    "accuracy": 0.0,
+    "avg_move_by_tone": {
+      "none": 3.27,
+      "positive": -1.44,
+      "neutral": -0.02
+    },
+    "count_by_tone": {
+      "none": 1,
+      "positive": 3,
+      "neutral": 1
+    },
+    "adjustment_active": false,
+    "needs_more": 27
+  }
+}
