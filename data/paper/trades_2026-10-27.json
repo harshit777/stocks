@@ -1,0 +1,18 @@
+[
+  {
+    "timestamp": "2026-10-27T09:06:38.785331",
+    "symbol": "SAIL",
+    "transaction_type": "BUY",
+    "quantity": 8,
+    "fill_price": 168.46,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-27T09:30:04.618517",
+    "symbol": "SAIL",
+    "transaction_type": "SELL",
+    "quantity": 8,
+    "fill_price": 170.6,
+    "pnl": 17.11999999999989
+  }
+]
