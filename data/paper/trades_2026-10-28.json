@@ -1,0 +1,50 @@
+[
+  {
+    "timestamp": "2026-10-28T05:23:50.751570",
+    "symbol": "SAIL",
+    "transaction_type": "BUY",
+    "quantity": 9,
+    "fill_price": 164.49,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-28T06:53:51.735767",
+    "symbol": "SAIL",
+    "transaction_type": "SELL",
+    "quantity": 9,
+    "fill_price": 163.12,
+    "pnl": -12.330000000000041
+  },
+  {
+    "timestamp": "2026-10-28T07:11:17.293009",
+    "symbol": "SAIL",
+    "transaction_type": "BUY",
+    "quantity": 9,
+    "fill_price": 163.14,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-28T07:48:19.491123",
+    "symbol": "SAIL",
+    "transaction_type": "SELL",
+    "quantity": 9,
+    "fill_price": 163.45,
+    "pnl": 2.7900000000000205
+  },
+  {
+    "timestamp": "2026-10-28T07:48:53.892337",
+    "symbol": "SAIL",
+    "transaction_type": "BUY",
+    "quantity": 9,
+    "fill_price": 163.51,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-28T09:18:54.976945",
+    "symbol": "SAIL",
+    "transaction_type": "SELL",
+    "quantity": 9,
+    "fill_price": 161.33,
+    "pnl": -19.619999999999806
+  }
+]
