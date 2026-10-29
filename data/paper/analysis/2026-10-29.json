@@ -1,0 +1,464 @@
+{
+  "date": "2026-10-29",
+  "market": {
+    "nifty_pct": 1.09,
+    "vix": 15.83,
+    "regime": "trending",
+    "tone": {
+      "label": "positive",
+      "score": 0.5,
+      "n": 10
+    },
+    "headlines": [
+      {
+        "title": "Sensex Plunges 1,045 Points, Nifty Hits 2026 Low as Oil Prices Surge",
+        "source": "INDIA New England News",
+        "score": 0.0
+      },
+      {
+        "title": "Stock market outlook today, 29 Oct: Sensex, Nifty prediction - DJIA, S&P, NASDAQ, GIFT Nifty, Kospi, Nikkei, Taiwan cues",
+        "source": "Livemint",
+        "score": 0.0
+      },
+      {
+        "title": "Sensex, Nifty rise in early trade on Reliance buying, foreign inflows",
+        "source": "The Hindu",
+        "score": 1.0
+      },
+      {
+        "title": "Sensex, Nifty trade higher after US Fed holds rates; crude oil remains a concern",
+        "source": "India Today",
+        "score": 0.0
+      },
+      {
+        "title": "Gift Nifty Hints at Flat\u2011to\u2011Weak Open as Crude, Fed Weigh",
+        "source": "HDFC Sky",
+        "score": -1.0
+      }
+    ],
+    "timeline": [
+      {
+        "time": "10:25",
+        "nifty_pct": 0.52,
+        "market_tone": 0.2
+      },
+      {
+        "time": "10:56",
+        "nifty_pct": 0.64,
+        "market_tone": 0.333
+      },
+      {
+        "time": "11:26",
+        "nifty_pct": 0.62,
+        "market_tone": 0.625
+      },
+      {
+        "time": "11:57",
+        "nifty_pct": 0.71,
+        "market_tone": 0.5
+      },
+      {
+        "time": "12:28",
+        "nifty_pct": 0.65,
+        "market_tone": 0.5
+      },
+      {
+        "time": "12:59",
+        "nifty_pct": 0.59,
+        "market_tone": 0.571
+      },
+      {
+        "time": "13:29",
+        "nifty_pct": 0.67,
+        "market_tone": 0.5
+      },
+      {
+        "time": "14:00",
+        "nifty_pct": 0.87,
+        "market_tone": 0.625
+      },
+      {
+        "time": "14:31",
+        "nifty_pct": 1.03,
+        "market_tone": 0.5
+      },
+      {
+        "time": "15:00",
+        "nifty_pct": 1.09,
+        "market_tone": 0.5
+      }
+    ],
+    "breadth": {
+      "advancers": 9,
+      "decliners": 1,
+      "avg_move_pct": 2.56
+    }
+  },
+  "stocks": [
+    {
+      "symbol": "POWERGRID",
+      "day_pct": 3.78,
+      "market_pct": 1.09,
+      "residual_pct": 2.69,
+      "gap_pct": -0.24,
+      "intraday_pct": 4.03,
+      "vol_ratio": 0.28,
+      "news_tone": "positive",
+      "news_score": 0.5,
+      "news_aligned": true,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 2.69%",
+        "intraday move after the open (+4.03%)",
+        "news tone positive, consistent with the move"
+      ],
+      "summary": "POWERGRID +3.78%: stock-specific: outperformed Nifty by 2.69%; intraday move after the open (+4.03%); news tone positive, consistent with the move",
+      "headlines": [
+        {
+          "title": "Top stock to buy today: Jefferies India sees 29% upside in NSE share price in upside scenario | Target price, rationale",
+          "source": "Livemint",
+          "score": 1.0
+        },
+        {
+          "title": "Aeroflex Industries shares surge 14% - What's behind the stock rally? What's next for the stock?",
+          "source": "Livemint",
+          "score": 1.0
+        },
+        {
+          "title": "National Grid plc (NGG) Stock Price, News, Quote & History",
+          "source": "Yahoo! Finance Canada",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "KOTAKBANK",
+      "day_pct": 4.09,
+      "market_pct": 1.09,
+      "residual_pct": 3.0,
+      "gap_pct": 0.41,
+      "intraday_pct": 3.67,
+      "vol_ratio": 0.21,
+      "news_tone": "neutral",
+      "news_score": 0.0,
+      "news_aligned": null,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 3.00%",
+        "intraday move after the open (+3.67%)"
+      ],
+      "summary": "KOTAKBANK +4.09%: stock-specific: outperformed Nifty by 3.00%; intraday move after the open (+3.67%)",
+      "headlines": [
+        {
+          "title": "First Tick: Top global cues to watch in today's trade",
+          "source": "Moneycontrol.com",
+          "score": 0.0
+        },
+        {
+          "title": "Kotak Mahindra Bank slides Wednesday, underperforms market",
+          "source": "MarketWatch",
+          "score": -1.0
+        },
+        {
+          "title": "Jio shares extend gains to 2nd day, up 33% from issue price; here's what analysts say",
+          "source": "Moneycontrol.com",
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "symbol": "ITC",
+      "day_pct": 2.5,
+      "market_pct": 1.09,
+      "residual_pct": 1.41,
+      "gap_pct": -0.62,
+      "intraday_pct": 3.14,
+      "vol_ratio": 0.13,
+      "news_tone": "none",
+      "news_score": 0.0,
+      "news_aligned": null,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 1.41%",
+        "intraday move after the open (+3.14%)"
+      ],
+      "summary": "ITC +2.50%: stock-specific: outperformed Nifty by 1.41%; intraday move after the open (+3.14%)",
+      "headlines": [
+        {
+          "title": "ITC Share Price Hits Fresh 52-Week Low: Analysis",
+          "source": "Univest",
+          "score": 0.0
+        },
+        {
+          "title": "HDFC Bank, ITC, HDFC Life, Nestle, Britannia, TaMo PV hit 52-week lows",
+          "source": "Business Standard",
+          "score": 0.0
+        },
+        {
+          "title": "Top 20 Shares For Long-Term Investment In India For October 2026",
+          "source": "Samco",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "NTPC",
+      "day_pct": 2.27,
+      "market_pct": 1.09,
+      "residual_pct": 1.18,
+      "gap_pct": -0.58,
+      "intraday_pct": 2.86,
+      "vol_ratio": 0.17,
+      "news_tone": "positive",
+      "news_score": 1.0,
+      "news_aligned": true,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 1.18%",
+        "intraday move after the open (+2.86%)",
+        "news tone positive, consistent with the move"
+      ],
+      "summary": "NTPC +2.27%: stock-specific: outperformed Nifty by 1.18%; intraday move after the open (+2.86%); news tone positive, consistent with the move",
+      "headlines": [
+        {
+          "title": "ACME Solar shares gain 4% after subsidiary signs 400 MW PPA with NTPC",
+          "source": "Business Today",
+          "score": 1.0
+        },
+        {
+          "title": "Top stock to buy today: Jefferies India sees 29% upside in NSE share price in upside scenario | Target price, rationale",
+          "source": "Livemint",
+          "score": 1.0
+        },
+        {
+          "title": "Aeroflex Industries shares surge 14% - What's behind the stock rally? What's next for the stock?",
+          "source": "Livemint",
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "symbol": "PNB",
+      "day_pct": 2.73,
+      "market_pct": 1.09,
+      "residual_pct": 1.64,
+      "gap_pct": -0.33,
+      "intraday_pct": 3.07,
+      "vol_ratio": 0.29,
+      "news_tone": "negative",
+      "news_score": -0.33,
+      "news_aligned": false,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 1.64%",
+        "intraday move after the open (+3.07%)",
+        "news tone negative, but the price went the other way \u2014 news did not explain it"
+      ],
+      "summary": "PNB +2.73%: stock-specific: outperformed Nifty by 1.64%; intraday move after the open (+3.07%); news tone negative, but the price went the other way \u2014 news did not explain it",
+      "headlines": [
+        {
+          "title": "Punjab National Bank customers in Greater Noida allege Rs 35 crore fraud, several employees suspended",
+          "source": "The Economic Times",
+          "score": -1.0
+        },
+        {
+          "title": "Punjab National Bank Customers Allege Rs 35 Crore Fraud, Several PSB Employees Suspended",
+          "source": "NDTV Profit",
+          "score": -1.0
+        },
+        {
+          "title": "Karwa Chauth 2026: Are banks open today? Check if SBI, HDFC, ICICI Bank and others are closed in your city on October 29",
+          "source": "Livemint",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "WIPRO",
+      "day_pct": 3.06,
+      "market_pct": 1.09,
+      "residual_pct": 1.97,
+      "gap_pct": 0.81,
+      "intraday_pct": 2.23,
+      "vol_ratio": 0.19,
+      "news_tone": "positive",
+      "news_score": 1.0,
+      "news_aligned": true,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 1.97%",
+        "intraday move after the open (+2.23%)",
+        "news tone positive, consistent with the move"
+      ],
+      "summary": "WIPRO +3.06%: stock-specific: outperformed Nifty by 1.97%; intraday move after the open (+2.23%); news tone positive, consistent with the move",
+      "headlines": [
+        {
+          "title": "Top stock to buy today: Jefferies India sees 29% upside in NSE share price in upside scenario | Target price, rationale",
+          "source": "Livemint",
+          "score": 1.0
+        },
+        {
+          "title": "Turtlemint Fintech Solutions Ltd (TURTLEMINT) Share Price",
+          "source": "Business Today",
+          "score": 0.0
+        },
+        {
+          "title": "Aeroflex Industries shares surge 14% - What's behind the stock rally? What's next for the stock?",
+          "source": "Livemint",
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "symbol": "BANKBARODA",
+      "day_pct": 3.96,
+      "market_pct": 1.09,
+      "residual_pct": 2.87,
+      "gap_pct": 0.0,
+      "intraday_pct": 3.96,
+      "vol_ratio": 0.28,
+      "news_tone": "positive",
+      "news_score": 1.0,
+      "news_aligned": true,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 2.87%",
+        "intraday move after the open (+3.96%)",
+        "news tone positive, consistent with the move"
+      ],
+      "summary": "BANKBARODA +3.96%: stock-specific: outperformed Nifty by 2.87%; intraday move after the open (+3.96%); news tone positive, consistent with the move",
+      "headlines": [
+        {
+          "title": "Karwa Chauth 2026: Are banks open today? Check if SBI, HDFC, ICICI Bank and others are closed in your city on October 29",
+          "source": "Livemint",
+          "score": 0.0
+        },
+        {
+          "title": "HUL sales rise 15% to hit 14-quarter high, but inflation clouds demand outlook",
+          "source": "The Economic Times",
+          "score": 1.0
+        },
+        {
+          "title": "HDFC Bank Share Price - Live NSE: HDFCBANK Stock Price & Chart",
+          "source": "Upstox",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "CANBK",
+      "day_pct": 1.41,
+      "market_pct": 1.09,
+      "residual_pct": 0.32,
+      "gap_pct": 0.11,
+      "intraday_pct": 1.3,
+      "vol_ratio": 0.21,
+      "news_tone": "positive",
+      "news_score": 1.0,
+      "news_aligned": true,
+      "drivers": [
+        "market-wide move (Nifty +1.09%)",
+        "intraday move after the open (+1.30%)",
+        "news tone positive, consistent with the move"
+      ],
+      "summary": "CANBK +1.41%: market-wide move (Nifty +1.09%); intraday move after the open (+1.30%); news tone positive, consistent with the move",
+      "headlines": [
+        {
+          "title": "Canara Bank receives RBI approval for \u20b91,500 crore AT1 bond call option",
+          "source": "scanx.trade",
+          "score": 1.0
+        },
+        {
+          "title": "HDFC Bank Share Price - Live NSE: HDFCBANK Stock Price & Chart",
+          "source": "Upstox",
+          "score": 0.0
+        },
+        {
+          "title": "Jio after listing: 5 factors that could drive big returns for long-term investors",
+          "source": "The Economic Times",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "NYKAA",
+      "day_pct": 2.55,
+      "market_pct": 1.09,
+      "residual_pct": 1.46,
+      "gap_pct": 0.0,
+      "intraday_pct": 2.55,
+      "vol_ratio": 0.18,
+      "news_tone": "none",
+      "news_score": 0.0,
+      "news_aligned": null,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 1.46%",
+        "intraday move after the open (+2.55%)"
+      ],
+      "summary": "NYKAA +2.55%: stock-specific: outperformed Nifty by 1.46%; intraday move after the open (+2.55%)",
+      "headlines": [
+        {
+          "title": "Trade Spotlight: How should you trade Lenskart Solutions, Tata Consumer Products, BSE, Lumax Auto Tech,...",
+          "source": "Moneycontrol.com",
+          "score": 0.0
+        },
+        {
+          "title": "WATERWAYS LEISURE TOUR L Share Price - Live NSE: CORDELIA Stock Price & Chart",
+          "source": "Upstox",
+          "score": 0.0
+        },
+        {
+          "title": "MONEYVIEW LIMITED Share Price",
+          "source": "Upstox",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "SAIL",
+      "day_pct": -0.72,
+      "market_pct": 1.09,
+      "residual_pct": -1.81,
+      "gap_pct": 1.03,
+      "intraday_pct": -1.74,
+      "vol_ratio": 0.16,
+      "news_tone": "positive",
+      "news_score": 0.78,
+      "news_aligned": false,
+      "drivers": [
+        "stock-specific: underperformed Nifty by 1.81%",
+        "gap at the open (+1.03%) \u2014 overnight news or global cues",
+        "news tone positive, but the price went the other way \u2014 news did not explain it"
+      ],
+      "summary": "SAIL -0.72%: stock-specific: underperformed Nifty by 1.81%; gap at the open (+1.03%) \u2014 overnight news or global cues; news tone positive, but the price went the other way \u2014 news did not explain it",
+      "headlines": [
+        {
+          "title": "Tata Steel vs Hindalco vs JSW vs Nalco vs SAIL vs NMDC: Which Metal Stock To Gain From Aluminium Price Shock?",
+          "source": "Goodreturns",
+          "score": 1.0
+        },
+        {
+          "title": "SAIL shares in focus on 315% rise in Q2 net profit; debt falls",
+          "source": "Business Today",
+          "score": 0.33
+        },
+        {
+          "title": "SAIL Profit Surges to \u20b91,750 Cr in Q2 on Strong Revenue",
+          "source": "HDFC Sky",
+          "score": 1.0
+        }
+      ]
+    }
+  ],
+  "trades": [],
+  "learning": {
+    "n_obs": 5,
+    "n_decisive": 3,
+    "accuracy": 0.0,
+    "avg_move_by_tone": {
+      "none": 3.27,
+      "positive": -1.44,
+      "neutral": -0.02
+    },
+    "count_by_tone": {
+      "none": 1,
+      "positive": 3,
+      "neutral": 1
+    },
+    "adjustment_active": false,
+    "needs_more": 27
+  }
+}

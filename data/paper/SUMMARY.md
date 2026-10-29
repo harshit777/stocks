@@ -1,4 +1,4 @@
-# Paper trading summary — day 7 of 10
+# Paper trading summary — day 8 of 10
 
 ## Cumulative
 - Closed trades: 20
@@ -16,6 +16,7 @@
 | 5 | 2026-10-26 | 0 | n/a | n/a | ₹+0.00 |
 | 6 | 2026-10-27 | 1 | 100.0% | 100.0% | ₹+15.51 |
 | 7 | 2026-10-28 | 3 | 33.3% | 33.3% | ₹-34.38 |
+| 8 | 2026-10-29 | 0 | n/a | n/a | ₹+0.00 |
 
 ## Model training (latest runs)
 | Trained at | Samples | CV accuracy | CV AUC |
