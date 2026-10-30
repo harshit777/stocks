@@ -1,6 +1,6 @@
 {
   "model_version": 1,
-  "trained_at": "2026-10-29T17:07:20.372466",
+  "trained_at": "2026-10-30T16:50:57.816480",
   "symbols": [
     "RELIANCE",
     "TCS",
@@ -25,7 +25,7 @@
   "backtest_summaries": [
     {
       "symbol": "RELIANCE",
-      "candles": 9117,
+      "candles": 9189,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.75,
@@ -47,7 +47,7 @@
     },
     {
       "symbol": "TCS",
-      "candles": 9117,
+      "candles": 9189,
       "best_params": {
         "buy_threshold": 0.25,
         "sell_threshold": 0.8,
@@ -69,7 +69,7 @@
     },
     {
       "symbol": "INFY",
-      "candles": 9117,
+      "candles": 9189,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.75,
@@ -91,7 +91,7 @@
     },
     {
       "symbol": "HDFCBANK",
-      "candles": 9117,
+      "candles": 9189,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.85,
@@ -113,7 +113,7 @@
     },
     {
       "symbol": "ICICIBANK",
-      "candles": 9117,
+      "candles": 9189,
       "best_params": {
         "buy_threshold": 0.25,
         "sell_threshold": 0.75,
@@ -135,7 +135,7 @@
     },
     {
       "symbol": "SBIN",
-      "candles": 9117,
+      "candles": 9189,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.85,
@@ -157,7 +157,7 @@
     },
     {
       "symbol": "AXISBANK",
-      "candles": 9117,
+      "candles": 9189,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.75,
@@ -179,7 +179,7 @@
     },
     {
       "symbol": "WIPRO",
-      "candles": 9117,
+      "candles": 9189,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.85,
@@ -201,7 +201,7 @@
     },
     {
       "symbol": "LT",
-      "candles": 9117,
+      "candles": 9189,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.85,
@@ -223,7 +223,7 @@
     },
     {
       "symbol": "BAJFINANCE",
-      "candles": 9117,
+      "candles": 9189,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.75,
@@ -244,6 +244,6 @@
       "oos_expectancy": -4.0917
     }
   ],
-  "training_seconds": 61.0,
+  "training_seconds": 40.8,
   "model_path": "data/ml/model.joblib"
 }
