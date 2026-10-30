@@ -90,10 +90,20 @@
       "trades_count": 0,
       "used_capital": 0.0,
       "capital_utilization_pct": 0.0
+    },
+    {
+      "date": "2026-10-30",
+      "starting_capital": 9947.420000000002,
+      "ending_capital": 9940.870000000003,
+      "daily_pnl": -6.549999999999981,
+      "pnl_pct": -0.0658462194217192,
+      "trades_count": 3,
+      "used_capital": 0.0,
+      "capital_utilization_pct": 0.0
     }
   ],
-  "total_pnl": -52.57999999999929,
-  "total_trades": 20,
+  "total_pnl": -59.12999999999927,
+  "total_trades": 23,
   "winning_days": 2,
-  "losing_days": 4
+  "losing_days": 5
 }

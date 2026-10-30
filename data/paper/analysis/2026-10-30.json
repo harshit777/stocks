@@ -1,0 +1,512 @@
+{
+  "date": "2026-10-30",
+  "market": {
+    "nifty_pct": 0.41,
+    "vix": 15.64,
+    "regime": "trending",
+    "tone": {
+      "label": "positive",
+      "score": 0.5,
+      "n": 10
+    },
+    "headlines": [
+      {
+        "title": "Stock market outlook: Crude oil prices to FPI inflows - 8 triggers that could reverse trend in Sensex, Nifty 50",
+        "source": "Livemint",
+        "score": 0.0
+      },
+      {
+        "title": "Sensex, Nifty trade flat as IT gains counter crude oil concerns",
+        "source": "India Today",
+        "score": 0.0
+      },
+      {
+        "title": "Stock Market Today: Sensex Rises, Nifty 50 Near 23,000; Trent Zooms 6%, Sun Pharma 2%; RIL, Jio Platforms Q2 Results Eyed",
+        "source": "NDTV Profit",
+        "score": 1.0
+      },
+      {
+        "title": "Sensex Today Trades Flat | Nifty Below 22,950 | BSE Telecommunication Down 1.7%",
+        "source": "Equitymaster",
+        "score": 0.0
+      },
+      {
+        "title": "Sensex, Nifty Open Volatile; India VIX Rises, Crude Above $116",
+        "source": "HDFC Sky",
+        "score": 1.0
+      }
+    ],
+    "timeline": [
+      {
+        "time": "10:31",
+        "nifty_pct": -0.03,
+        "market_tone": 0.0
+      },
+      {
+        "time": "11:02",
+        "nifty_pct": 0.24,
+        "market_tone": -0.167
+      },
+      {
+        "time": "11:33",
+        "nifty_pct": 0.45,
+        "market_tone": 0.167
+      },
+      {
+        "time": "12:04",
+        "nifty_pct": 0.69,
+        "market_tone": 0.0
+      },
+      {
+        "time": "12:35",
+        "nifty_pct": 0.7,
+        "market_tone": 0.0
+      },
+      {
+        "time": "13:06",
+        "nifty_pct": 0.63,
+        "market_tone": 0.167
+      },
+      {
+        "time": "13:37",
+        "nifty_pct": 0.51,
+        "market_tone": 0.571
+      },
+      {
+        "time": "14:08",
+        "nifty_pct": 0.33,
+        "market_tone": 0.5
+      },
+      {
+        "time": "14:38",
+        "nifty_pct": 0.59,
+        "market_tone": 0.5
+      },
+      {
+        "time": "15:00",
+        "nifty_pct": 0.42,
+        "market_tone": 0.5
+      }
+    ],
+    "breadth": {
+      "advancers": 3,
+      "decliners": 7,
+      "avg_move_pct": -0.44
+    }
+  },
+  "stocks": [
+    {
+      "symbol": "COALINDIA",
+      "day_pct": -0.93,
+      "market_pct": 0.41,
+      "residual_pct": -1.34,
+      "gap_pct": 1.25,
+      "intraday_pct": -2.15,
+      "vol_ratio": 1.72,
+      "news_tone": "neutral",
+      "news_score": 0.0,
+      "news_aligned": null,
+      "drivers": [
+        "stock-specific: underperformed Nifty by 1.34%",
+        "gap at the open (+1.25%) \u2014 overnight news or global cues",
+        "heavy volume (1.7x the 20-day average)"
+      ],
+      "summary": "COALINDIA -0.93%: stock-specific: underperformed Nifty by 1.34%; gap at the open (+1.25%) \u2014 overnight news or global cues; heavy volume (1.7x the 20-day average)",
+      "headlines": [
+        {
+          "title": "Coal India falls 3% post Q2 results but brokerages upbeat on PSU stock",
+          "source": "Business Standard",
+          "score": -1.0
+        },
+        {
+          "title": "Coal India Q2 Review: Morgan Stanley, Jefferies, HSBC Bullish Despite Q2 Earnings Miss; Check Targets",
+          "source": "NDTV Profit",
+          "score": 0.0
+        },
+        {
+          "title": "Coal India Share Price - Live NSE: COALINDIA Stock Price & Chart",
+          "source": "Upstox",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "SWIGGY",
+      "day_pct": -4.67,
+      "market_pct": 0.41,
+      "residual_pct": -5.08,
+      "gap_pct": -0.51,
+      "intraday_pct": -4.18,
+      "vol_ratio": 0.56,
+      "news_tone": "negative",
+      "news_score": -0.5,
+      "news_aligned": true,
+      "drivers": [
+        "stock-specific: underperformed Nifty by 5.08%",
+        "intraday move after the open (-4.18%)",
+        "news tone negative, consistent with the move"
+      ],
+      "summary": "SWIGGY -4.67%: stock-specific: underperformed Nifty by 5.08%; intraday move after the open (-4.18%); news tone negative, consistent with the move",
+      "headlines": [
+        {
+          "title": "Swiggy block deal: Rs 982 crore worth shares change hands; key details",
+          "source": "Business Today",
+          "score": 0.0
+        },
+        {
+          "title": "MONEYVIEW LIMITED Share Price - Live NSE: MONEYVIEW Stock Price & Chart",
+          "source": "Upstox",
+          "score": 0.0
+        },
+        {
+          "title": "Diwali blues: 83 largecap stocks plunge up to 60% since Samvat 2082. Can bluechips light up D-Street in th",
+          "source": "The Economic Times",
+          "score": -1.0
+        }
+      ]
+    },
+    {
+      "symbol": "IDFCFIRSTB",
+      "day_pct": -2.02,
+      "market_pct": 0.41,
+      "residual_pct": -2.43,
+      "gap_pct": -0.04,
+      "intraday_pct": -1.98,
+      "vol_ratio": 0.52,
+      "news_tone": "negative",
+      "news_score": -0.5,
+      "news_aligned": true,
+      "drivers": [
+        "stock-specific: underperformed Nifty by 2.43%",
+        "intraday move after the open (-1.98%)",
+        "news tone negative, consistent with the move"
+      ],
+      "summary": "IDFCFIRSTB -2.02%: stock-specific: underperformed Nifty by 2.43%; intraday move after the open (-1.98%); news tone negative, consistent with the move",
+      "headlines": [
+        {
+          "title": "IDFC First Bank Fraud Case: How Did Senior IAS Officers Allegedly Trade Public Funds For Gold Coins, Mujra Parties And Hotel Bills While Haryana\u2019s Departments Bled Hundreds Of Crores?",
+          "source": "Inventiva",
+          "score": -1.0
+        },
+        {
+          "title": "Nifty Bank Live | NSE Nifty Bank Index Today - S&P CNX Nifty Bank",
+          "source": "The Economic Times",
+          "score": 0.0
+        },
+        {
+          "title": "ICRA Q2FY27 results: Revenue up 30.2% YoY, PAT rises 9.2% to \u20b952.4 crore",
+          "source": "scanx.trade",
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "symbol": "WIPRO",
+      "day_pct": 3.69,
+      "market_pct": 0.41,
+      "residual_pct": 3.27,
+      "gap_pct": 0.37,
+      "intraday_pct": 3.31,
+      "vol_ratio": 0.35,
+      "news_tone": "positive",
+      "news_score": 0.67,
+      "news_aligned": true,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 3.27%",
+        "intraday move after the open (+3.31%)",
+        "news tone positive, consistent with the move"
+      ],
+      "summary": "WIPRO +3.69%: stock-specific: outperformed Nifty by 3.27%; intraday move after the open (+3.31%); news tone positive, consistent with the move",
+      "headlines": [
+        {
+          "title": "Wipro Limited (WIPRO.NS) Stock Price, News, Quote & History",
+          "source": "Yahoo! Finance Canada",
+          "score": 0.0
+        },
+        {
+          "title": "30th October 2026: Best stocks to buy or sell ft. Raja Venkatraman",
+          "source": "Livemint",
+          "score": 0.0
+        },
+        {
+          "title": "Stocks To Watch Today: Dixon Tech, Syrma SGS, Sun Pharma, Wipro, Trent Among Others",
+          "source": "NDTV Profit",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "NYKAA",
+      "day_pct": -0.2,
+      "market_pct": 0.41,
+      "residual_pct": -0.61,
+      "gap_pct": 0.45,
+      "intraday_pct": -0.65,
+      "vol_ratio": 0.16,
+      "news_tone": "positive",
+      "news_score": 0.5,
+      "news_aligned": null,
+      "drivers": [
+        "quiet \u2014 no clear driver"
+      ],
+      "summary": "NYKAA -0.20%: quiet \u2014 no clear driver",
+      "headlines": [
+        {
+          "title": "MONEYVIEW LIMITED Share Price - Live NSE: MONEYVIEW Stock Price & Chart",
+          "source": "Upstox",
+          "score": 0.0
+        },
+        {
+          "title": "Top 3 stocks to buy tomorrow: Kotak Mahindra Bank, Nykaa, Eternal by market expert; check stop-loss, target price",
+          "source": "Livemint",
+          "score": 0.0
+        },
+        {
+          "title": "FSN E-Commerce Ventures Share Price Today at 52-Week High",
+          "source": "Univest",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "CANBK",
+      "day_pct": -1.44,
+      "market_pct": 0.41,
+      "residual_pct": -1.85,
+      "gap_pct": -0.03,
+      "intraday_pct": -1.41,
+      "vol_ratio": 0.22,
+      "news_tone": "neutral",
+      "news_score": 0.0,
+      "news_aligned": null,
+      "drivers": [
+        "stock-specific: underperformed Nifty by 1.85%",
+        "intraday move after the open (-1.41%)"
+      ],
+      "summary": "CANBK -1.44%: stock-specific: underperformed Nifty by 1.85%; intraday move after the open (-1.41%)",
+      "headlines": [
+        {
+          "title": "Canara Bank pays \u20b97.30 lakh penalty to RBI for ATM violations",
+          "source": "scanx.trade",
+          "score": -1.0
+        },
+        {
+          "title": "Bandhan Bank Share Price - Live NSE: BANDHANBNK Stock Price & Chart",
+          "source": "Upstox",
+          "score": 0.0
+        },
+        {
+          "title": "B.R. Shetty seeks Bank of Baroda records, financial security in new applications",
+          "source": "Livemint",
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "symbol": "POWERGRID",
+      "day_pct": 1.06,
+      "market_pct": 0.41,
+      "residual_pct": 0.64,
+      "gap_pct": 0.02,
+      "intraday_pct": 1.04,
+      "vol_ratio": 0.21,
+      "news_tone": "positive",
+      "news_score": 0.75,
+      "news_aligned": true,
+      "drivers": [
+        "intraday move after the open (+1.04%)",
+        "news tone positive, consistent with the move"
+      ],
+      "summary": "POWERGRID +1.06%: intraday move after the open (+1.04%); news tone positive, consistent with the move",
+      "headlines": [
+        {
+          "title": "Power Grid shares rally over 4% as board fixes record date for first dividend of FY27; check details",
+          "source": "Upstox",
+          "score": 1.0
+        },
+        {
+          "title": "30th October 2026: Best stocks to buy or sell ft. Raja Venkatraman",
+          "source": "Livemint",
+          "score": 0.0
+        },
+        {
+          "title": "Stock Market Today: Sensex, Nifty Rise; Shares Of JIO, Power Grid, TCS Jump",
+          "source": "ETV Bharat",
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "symbol": "PNB",
+      "day_pct": -0.85,
+      "market_pct": 0.41,
+      "residual_pct": -1.26,
+      "gap_pct": 0.0,
+      "intraday_pct": -0.85,
+      "vol_ratio": 0.38,
+      "news_tone": "negative",
+      "news_score": -0.2,
+      "news_aligned": true,
+      "drivers": [
+        "stock-specific: underperformed Nifty by 1.26%",
+        "news tone negative, consistent with the move"
+      ],
+      "summary": "PNB -0.85%: stock-specific: underperformed Nifty by 1.26%; news tone negative, consistent with the move",
+      "headlines": [
+        {
+          "title": "Top stocks to buy today: Stock market recommendations for October 30, 2026 - check list",
+          "source": "The Times of India",
+          "score": 1.0
+        },
+        {
+          "title": "PNB re-submits Q2FY27 results; confirms no change in financial figures",
+          "source": "scanx.trade",
+          "score": 0.0
+        },
+        {
+          "title": "PNB Greater Noida Branch Fraud Case: PSU Lender Settles Three Claims Worth Rs 43 Lakh",
+          "source": "NDTV Profit",
+          "score": -1.0
+        }
+      ]
+    },
+    {
+      "symbol": "BANKBARODA",
+      "day_pct": -0.85,
+      "market_pct": 0.41,
+      "residual_pct": -1.27,
+      "gap_pct": 0.08,
+      "intraday_pct": -0.93,
+      "vol_ratio": 0.3,
+      "news_tone": "positive",
+      "news_score": 1.0,
+      "news_aligned": false,
+      "drivers": [
+        "stock-specific: underperformed Nifty by 1.27%",
+        "news tone positive, but the price went the other way \u2014 news did not explain it"
+      ],
+      "summary": "BANKBARODA -0.85%: stock-specific: underperformed Nifty by 1.27%; news tone positive, but the price went the other way \u2014 news did not explain it",
+      "headlines": [
+        {
+          "title": "B.R. Shetty seeks Bank of Baroda records, financial security in new applications",
+          "source": "Livemint",
+          "score": 1.0
+        },
+        {
+          "title": "Stocks to watch: RIL, Jio Platforms, BoB, Equitas SFB, Trent, Coal India",
+          "source": "Business Standard",
+          "score": 0.0
+        },
+        {
+          "title": "Stocks in news: RIL, Jio, Trent, Suzlon Energy, IndiGo, Vedanta Power and RVNL",
+          "source": "The Economic Times",
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "NTPC",
+      "day_pct": 1.77,
+      "market_pct": 0.41,
+      "residual_pct": 1.36,
+      "gap_pct": 0.0,
+      "intraday_pct": 1.77,
+      "vol_ratio": 0.44,
+      "news_tone": "positive",
+      "news_score": 0.67,
+      "news_aligned": true,
+      "drivers": [
+        "stock-specific: outperformed Nifty by 1.36%",
+        "intraday move after the open (+1.77%)",
+        "news tone positive, consistent with the move"
+      ],
+      "summary": "NTPC +1.77%: stock-specific: outperformed Nifty by 1.36%; intraday move after the open (+1.77%); news tone positive, consistent with the move",
+      "headlines": [
+        {
+          "title": "30th October 2026: Best stocks to buy or sell ft. Raja Venkatraman",
+          "source": "Livemint",
+          "score": 0.0
+        },
+        {
+          "title": "NTPC subsidiary NVVN declares first BESS project commercial",
+          "source": "scanx.trade",
+          "score": 0.0
+        },
+        {
+          "title": "Tata Power, NTPC Green, Torrent Power, NTPC, Power Grid, JSW Energy, IEX shares: Check ratings, targets",
+          "source": "Business Today",
+          "score": 0.0
+        }
+      ]
+    }
+  ],
+  "trades": [
+    {
+      "symbol": "SWIGGY",
+      "time": "2026-10-30T07:29:20.867279",
+      "qty": 8,
+      "entry": 176.49,
+      "exit": 177.41,
+      "gross_pnl": 7.36,
+      "costs": 1.68,
+      "net_pnl": 5.68,
+      "entry_tone": "negative",
+      "move_after_exit_pct": -0.46,
+      "notes": [
+        "entered against negative news and still won",
+        "helped by a strong market (Nifty +0.41%)",
+        "stock-specific: underperformed Nifty by 5.08%"
+      ]
+    },
+    {
+      "symbol": "SWIGGY",
+      "time": "2026-10-30T09:08:11.729174",
+      "qty": 8,
+      "entry": 176.54,
+      "exit": 175.61,
+      "gross_pnl": -7.44,
+      "costs": 1.67,
+      "net_pnl": -9.11,
+      "entry_tone": "negative",
+      "move_after_exit_pct": 0.56,
+      "notes": [
+        "entered against negative news",
+        "price rose another 0.56% after we exited",
+        "stock-specific: underperformed Nifty by 5.08%"
+      ]
+    },
+    {
+      "symbol": "SWIGGY",
+      "time": "2026-10-30T09:30:02.611888",
+      "qty": 8,
+      "entry": 176.49,
+      "exit": 176.31,
+      "gross_pnl": -1.44,
+      "costs": 1.68,
+      "net_pnl": -3.12,
+      "entry_tone": "negative",
+      "move_after_exit_pct": 0.16,
+      "notes": [
+        "entered against negative news",
+        "stock-specific: underperformed Nifty by 5.08%"
+      ]
+    }
+  ],
+  "learning": {
+    "n_obs": 5,
+    "n_decisive": 3,
+    "accuracy": 0.0,
+    "avg_move_by_tone": {
+      "none": 3.27,
+      "positive": -1.44,
+      "neutral": -0.02
+    },
+    "count_by_tone": {
+      "none": 1,
+      "positive": 3,
+      "neutral": 1
+    },
+    "adjustment_active": false,
+    "needs_more": 27
+  }
+}

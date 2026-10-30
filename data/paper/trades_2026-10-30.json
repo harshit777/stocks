@@ -1,0 +1,50 @@
+[
+  {
+    "timestamp": "2026-10-30T05:59:19.707666",
+    "symbol": "SWIGGY",
+    "transaction_type": "BUY",
+    "quantity": 8,
+    "fill_price": 176.49,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-30T07:29:20.867279",
+    "symbol": "SWIGGY",
+    "transaction_type": "SELL",
+    "quantity": 8,
+    "fill_price": 177.41,
+    "pnl": 7.3599999999999
+  },
+  {
+    "timestamp": "2026-10-30T07:38:10.872030",
+    "symbol": "SWIGGY",
+    "transaction_type": "BUY",
+    "quantity": 8,
+    "fill_price": 176.54,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-30T09:08:11.729174",
+    "symbol": "SWIGGY",
+    "transaction_type": "SELL",
+    "quantity": 8,
+    "fill_price": 175.61,
+    "pnl": -7.439999999999827
+  },
+  {
+    "timestamp": "2026-10-30T09:29:20.140847",
+    "symbol": "SWIGGY",
+    "transaction_type": "BUY",
+    "quantity": 8,
+    "fill_price": 176.49,
+    "pnl": null
+  },
+  {
+    "timestamp": "2026-10-30T09:30:02.611888",
+    "symbol": "SWIGGY",
+    "transaction_type": "SELL",
+    "quantity": 8,
+    "fill_price": 176.31,
+    "pnl": -1.4400000000000546
+  }
+]

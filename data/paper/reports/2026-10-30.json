@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-30",
+  "mode": "paper",
+  "complete": true,
+  "end_reason": "square-off reached",
+  "starting_capital": 9947.42,
+  "max_drawdown": 8.88,
+  "open_positions_at_close": 0,
+  "signals": {
+    "buy_signals": 3,
+    "sell_signals": 0,
+    "shorts_skipped": 0,
+    "approved": 3,
+    "blocked": 0,
+    "executed": 3
+  },
+  "exits_by_reason": {
+    "Time stop": 1,
+    "EOD square-off": 1
+  },
+  "ml": {
+    "online_updates": 1356,
+    "online_mature": true,
+    "scoreboard": {
+      "answered": 1336,
+      "window": 300,
+      "min_judge": 100,
+      "benched": true,
+      "brier": 0.2922,
+      "baseline_brier": 0.2498,
+      "skill": -0.0424,
+      "hit_rate": 0.51,
+      "base_rate": 0.4867,
+      "confident_n": 0,
+      "confident_win_rate": null
+    },
+    "offline_accuracy": 0.5692,
+    "offline_trained": "2026-10-29T17:07:20.372466",
+    "symbols_with_features": 10
+  },
+  "closed_trades": 3,
+  "wins_gross": 1,
+  "losses_gross": 2,
+  "wins_net": 1,
+  "win_rate_gross_pct": 33.3,
+  "win_rate_net_pct": 33.3,
+  "gross_pnl": -1.52,
+  "costs": 5.03,
+  "net_pnl": -6.55,
+  "avg_win": 7.36,
+  "avg_loss": -4.44,
+  "profit_factor": 0.83,
+  "round_trips": [
+    {
+      "symbol": "SWIGGY",
+      "time": "2026-10-30T07:29:20.867279",
+      "qty": 8,
+      "entry": 176.49,
+      "exit": 177.41,
+      "gross_pnl": 7.36,
+      "costs": 1.68,
+      "net_pnl": 5.68
+    },
+    {
+      "symbol": "SWIGGY",
+      "time": "2026-10-30T09:08:11.729174",
+      "qty": 8,
+      "entry": 176.54,
+      "exit": 175.61,
+      "gross_pnl": -7.44,
+      "costs": 1.67,
+      "net_pnl": -9.11
+    },
+    {
+      "symbol": "SWIGGY",
+      "time": "2026-10-30T09:30:02.611888",
+      "qty": 8,
+      "entry": 176.49,
+      "exit": 176.31,
+      "gross_pnl": -1.44,
+      "costs": 1.68,
+      "net_pnl": -3.12
+    }
+  ]
+}
