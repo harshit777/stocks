@@ -1,0 +1,84 @@
+{
+  "date": "2026-10-28",
+  "mode": "paper",
+  "complete": true,
+  "end_reason": "square-off reached",
+  "starting_capital": 9981.8,
+  "max_drawdown": 29.16,
+  "open_positions_at_close": 0,
+  "signals": {
+    "buy_signals": 3,
+    "sell_signals": 0,
+    "shorts_skipped": 0,
+    "approved": 3,
+    "blocked": 0,
+    "executed": 3
+  },
+  "exits_by_reason": {
+    "Time stop": 1
+  },
+  "ml": {
+    "online_updates": 953,
+    "online_mature": true,
+    "scoreboard": {
+      "answered": 936,
+      "window": 300,
+      "min_judge": 100,
+      "benched": true,
+      "brier": 0.2574,
+      "baseline_brier": 0.2407,
+      "skill": -0.0167,
+      "hit_rate": 0.6,
+      "base_rate": 0.4033,
+      "confident_n": 2,
+      "confident_win_rate": 1.0
+    },
+    "offline_accuracy": 0.5385,
+    "offline_trained": "2026-10-27T16:04:03.205603",
+    "symbols_with_features": 10
+  },
+  "closed_trades": 3,
+  "wins_gross": 1,
+  "losses_gross": 2,
+  "wins_net": 1,
+  "win_rate_gross_pct": 33.3,
+  "win_rate_net_pct": 33.3,
+  "gross_pnl": -29.16,
+  "costs": 5.22,
+  "net_pnl": -34.38,
+  "avg_win": 2.79,
+  "avg_loss": -15.98,
+  "profit_factor": 0.09,
+  "round_trips": [
+    {
+      "symbol": "SAIL",
+      "time": "2026-10-28T06:53:51.735767",
+      "qty": 9,
+      "entry": 164.49,
+      "exit": 163.12,
+      "gross_pnl": -12.33,
+      "costs": 1.74,
+      "net_pnl": -14.07
+    },
+    {
+      "symbol": "SAIL",
+      "time": "2026-10-28T07:48:19.491123",
+      "qty": 9,
+      "entry": 163.14,
+      "exit": 163.45,
+      "gross_pnl": 2.79,
+      "costs": 1.75,
+      "net_pnl": 1.04
+    },
+    {
+      "symbol": "SAIL",
+      "time": "2026-10-28T09:18:54.976945",
+      "qty": 9,
+      "entry": 163.51,
+      "exit": 161.33,
+      "gross_pnl": -19.62,
+      "costs": 1.73,
+      "net_pnl": -21.35
+    }
+  ]
+}

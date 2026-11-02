@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-21",
+  "mode": "paper",
+  "complete": true,
+  "end_reason": "square-off reached",
+  "starting_capital": 10004.11,
+  "max_drawdown": 1.04,
+  "open_positions_at_close": 0,
+  "signals": {
+    "buy_signals": 1,
+    "sell_signals": 4,
+    "shorts_skipped": 4,
+    "approved": 1,
+    "blocked": 0,
+    "executed": 1
+  },
+  "exits_by_reason": {
+    "EOD square-off": 1
+  },
+  "ml": {
+    "online_updates": 136,
+    "online_mature": true,
+    "scoreboard": {
+      "answered": 135,
+      "window": 135,
+      "min_judge": 100,
+      "benched": true,
+      "brier": 0.1938,
+      "baseline_brier": 0.1156,
+      "skill": -0.0783,
+      "hit_rate": 0.7111,
+      "base_rate": 0.1333,
+      "confident_n": 19,
+      "confident_win_rate": 0.0526
+    },
+    "offline_accuracy": 0.4625,
+    "offline_trained": "2026-10-20T15:25:20.703715",
+    "symbols_with_features": 5
+  },
+  "closed_trades": 1,
+  "wins_gross": 0,
+  "losses_gross": 1,
+  "wins_net": 0,
+  "win_rate_gross_pct": 0.0,
+  "win_rate_net_pct": 0.0,
+  "gross_pnl": -1.04,
+  "costs": 1.62,
+  "net_pnl": -2.66,
+  "avg_win": null,
+  "avg_loss": -1.04,
+  "profit_factor": 0.0,
+  "round_trips": [
+    {
+      "symbol": "TATASTEEL",
+      "time": "2026-10-21T09:30:05.872661",
+      "qty": 8,
+      "entry": 171.17,
+      "exit": 171.04,
+      "gross_pnl": -1.04,
+      "costs": 1.62,
+      "net_pnl": -2.66
+    }
+  ]
+}

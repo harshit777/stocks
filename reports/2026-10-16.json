@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-16",
+  "mode": "paper",
+  "complete": true,
+  "end_reason": "square-off reached",
+  "starting_capital": 10000.0,
+  "max_drawdown": 0.0,
+  "open_positions_at_close": 0,
+  "signals": {
+    "buy_signals": 2,
+    "sell_signals": 0,
+    "shorts_skipped": 0,
+    "approved": 2,
+    "blocked": 0,
+    "executed": 2
+  },
+  "exits_by_reason": {
+    "EOD square-off": 1
+  },
+  "ml": {
+    "online_updates": 0,
+    "online_mature": false,
+    "offline_accuracy": null,
+    "offline_trained": null,
+    "symbols_with_features": 10
+  },
+  "closed_trades": 2,
+  "wins_gross": 2,
+  "losses_gross": 0,
+  "wins_net": 1,
+  "win_rate_gross_pct": 100.0,
+  "win_rate_net_pct": 50.0,
+  "gross_pnl": 10.08,
+  "costs": 3.15,
+  "net_pnl": 6.93,
+  "avg_win": 5.04,
+  "avg_loss": null,
+  "profit_factor": null,
+  "round_trips": [
+    {
+      "symbol": "FEDERALBNK",
+      "time": "2026-10-16T06:47:41.130619",
+      "qty": 4,
+      "entry": 330.09,
+      "exit": 330.11,
+      "gross_pnl": 0.08,
+      "costs": 1.57,
+      "net_pnl": -1.49
+    },
+    {
+      "symbol": "FEDERALBNK",
+      "time": "2026-10-16T09:30:22.301143",
+      "qty": 4,
+      "entry": 332.34,
+      "exit": 334.84,
+      "gross_pnl": 10.0,
+      "costs": 1.58,
+      "net_pnl": 8.42
+    }
+  ]
+}

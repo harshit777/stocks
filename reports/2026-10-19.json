@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-19",
+  "mode": "paper",
+  "complete": true,
+  "end_reason": "square-off reached",
+  "starting_capital": 10010.08,
+  "max_drawdown": 4.36,
+  "open_positions_at_close": 0,
+  "signals": {
+    "buy_signals": 1,
+    "sell_signals": 6,
+    "shorts_skipped": 6,
+    "approved": 1,
+    "blocked": 0,
+    "executed": 1
+  },
+  "exits_by_reason": {
+    "EOD square-off": 1
+  },
+  "ml": {
+    "online_updates": 0,
+    "online_mature": false,
+    "offline_accuracy": 0.5,
+    "offline_trained": "2026-10-16T15:02:25.647406",
+    "symbols_with_features": 10
+  },
+  "closed_trades": 1,
+  "wins_gross": 0,
+  "losses_gross": 1,
+  "wins_net": 0,
+  "win_rate_gross_pct": 0.0,
+  "win_rate_net_pct": 0.0,
+  "gross_pnl": -4.36,
+  "costs": 1.61,
+  "net_pnl": -5.97,
+  "avg_win": null,
+  "avg_loss": -4.36,
+  "profit_factor": 0.0,
+  "round_trips": [
+    {
+      "symbol": "NYKAA",
+      "time": "2026-10-19T09:30:03.171843",
+      "qty": 4,
+      "entry": 338.27,
+      "exit": 337.18,
+      "gross_pnl": -4.36,
+      "costs": 1.61,
+      "net_pnl": -5.97
+    }
+  ]
+}

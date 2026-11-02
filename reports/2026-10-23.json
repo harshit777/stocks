@@ -1,0 +1,175 @@
+{
+  "date": "2026-10-23",
+  "mode": "paper",
+  "complete": true,
+  "end_reason": "square-off reached",
+  "starting_capital": 10001.45,
+  "max_drawdown": 40.73,
+  "open_positions_at_close": 0,
+  "signals": {
+    "buy_signals": 116,
+    "sell_signals": 0,
+    "shorts_skipped": 0,
+    "approved": 12,
+    "blocked": 104,
+    "executed": 12
+  },
+  "exits_by_reason": {
+    "Time stop": 5,
+    "EOD square-off": 4
+  },
+  "ml": {
+    "online_updates": 308,
+    "online_mature": true,
+    "scoreboard": {
+      "answered": 295,
+      "window": 295,
+      "min_judge": 100,
+      "benched": true,
+      "brier": 0.2689,
+      "baseline_brier": 0.212,
+      "skill": -0.0569,
+      "hit_rate": 0.6169,
+      "base_rate": 0.3051,
+      "confident_n": 22,
+      "confident_win_rate": 0.0455
+    },
+    "offline_accuracy": 0.4769,
+    "offline_trained": "2026-10-22T15:42:15.608843",
+    "symbols_with_features": 10
+  },
+  "closed_trades": 12,
+  "wins_gross": 7,
+  "losses_gross": 5,
+  "wins_net": 5,
+  "win_rate_gross_pct": 58.3,
+  "win_rate_net_pct": 41.7,
+  "gross_pnl": -19.39,
+  "costs": 15.77,
+  "net_pnl": -35.16,
+  "avg_win": 4.75,
+  "avg_loss": -10.52,
+  "profit_factor": 0.63,
+  "round_trips": [
+    {
+      "symbol": "TATASTEEL",
+      "time": "2026-10-23T07:04:13.124137",
+      "qty": 9,
+      "entry": 166.2,
+      "exit": 163.6,
+      "gross_pnl": -23.4,
+      "costs": 1.76,
+      "net_pnl": -25.16
+    },
+    {
+      "symbol": "NYKAA",
+      "time": "2026-10-23T07:12:35.381548",
+      "qty": 4,
+      "entry": 312.81,
+      "exit": 313.44,
+      "gross_pnl": 2.52,
+      "costs": 1.49,
+      "net_pnl": 1.03
+    },
+    {
+      "symbol": "WIPRO",
+      "time": "2026-10-23T07:12:36.682909",
+      "qty": 5,
+      "entry": 191.49,
+      "exit": 189.2,
+      "gross_pnl": -11.45,
+      "costs": 1.13,
+      "net_pnl": -12.58
+    },
+    {
+      "symbol": "SAIL",
+      "time": "2026-10-23T07:14:40.235505",
+      "qty": 5,
+      "entry": 163.26,
+      "exit": 161.58,
+      "gross_pnl": -8.4,
+      "costs": 0.96,
+      "net_pnl": -9.36
+    },
+    {
+      "symbol": "TATASTEEL",
+      "time": "2026-10-23T08:21:58.635712",
+      "qty": 9,
+      "entry": 164.72,
+      "exit": 166.02,
+      "gross_pnl": 11.7,
+      "costs": 1.77,
+      "net_pnl": 9.93
+    },
+    {
+      "symbol": "CANBK",
+      "time": "2026-10-23T09:00:17.871811",
+      "qty": 10,
+      "entry": 116.0,
+      "exit": 116.15,
+      "gross_pnl": 1.5,
+      "costs": 1.38,
+      "net_pnl": 0.12
+    },
+    {
+      "symbol": "NYKAA",
+      "time": "2026-10-23T09:00:18.368487",
+      "qty": 3,
+      "entry": 313.64,
+      "exit": 316.99,
+      "gross_pnl": 10.05,
+      "costs": 1.12,
+      "net_pnl": 8.93
+    },
+    {
+      "symbol": "NTPC",
+      "time": "2026-10-23T09:00:18.871495",
+      "qty": 3,
+      "entry": 293.4,
+      "exit": 295.82,
+      "gross_pnl": 7.26,
+      "costs": 1.05,
+      "net_pnl": 6.21
+    },
+    {
+      "symbol": "WIPRO",
+      "time": "2026-10-23T09:30:05.935111",
+      "qty": 5,
+      "entry": 190.03,
+      "exit": 189.52,
+      "gross_pnl": -2.55,
+      "costs": 1.13,
+      "net_pnl": -3.68
+    },
+    {
+      "symbol": "CANBK",
+      "time": "2026-10-23T09:30:06.699107",
+      "qty": 11,
+      "entry": 116.28,
+      "exit": 115.66,
+      "gross_pnl": -6.82,
+      "costs": 1.52,
+      "net_pnl": -8.34
+    },
+    {
+      "symbol": "IDFCFIRSTB",
+      "time": "2026-10-23T09:30:07.457041",
+      "qty": 16,
+      "entry": 72.27,
+      "exit": 72.28,
+      "gross_pnl": 0.16,
+      "costs": 1.37,
+      "net_pnl": -1.21
+    },
+    {
+      "symbol": "BANKBARODA",
+      "time": "2026-10-23T09:30:08.196940",
+      "qty": 4,
+      "entry": 229.86,
+      "exit": 229.87,
+      "gross_pnl": 0.04,
+      "costs": 1.09,
+      "net_pnl": -1.05
+    }
+  ]
+}

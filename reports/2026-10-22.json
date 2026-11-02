@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-22",
+  "mode": "paper",
+  "complete": false,
+  "end_reason": "late start",
+  "starting_capital": 10001.45,
+  "max_drawdown": 0.0,
+  "open_positions_at_close": 0,
+  "signals": {
+    "buy_signals": 0,
+    "sell_signals": 0,
+    "shorts_skipped": 0,
+    "approved": 0,
+    "blocked": 0,
+    "executed": 0
+  },
+  "exits_by_reason": {},
+  "ml": {
+    "online_updates": 136,
+    "online_mature": true,
+    "scoreboard": {
+      "answered": 135,
+      "window": 135,
+      "min_judge": 100,
+      "benched": true,
+      "brier": 0.1938,
+      "baseline_brier": 0.1156,
+      "skill": -0.0783,
+      "hit_rate": 0.7111,
+      "base_rate": 0.1333,
+      "confident_n": 19,
+      "confident_win_rate": 0.0526
+    },
+    "offline_accuracy": 0.4667,
+    "offline_trained": "2026-10-21T15:40:23.431725",
+    "symbols_with_features": 10
+  },
+  "closed_trades": 0,
+  "wins_gross": 0,
+  "losses_gross": 0,
+  "wins_net": 0,
+  "win_rate_gross_pct": null,
+  "win_rate_net_pct": null,
+  "gross_pnl": 0,
+  "costs": 0,
+  "net_pnl": 0,
+  "avg_win": null,
+  "avg_loss": null,
+  "profit_factor": null,
+  "round_trips": []
+}
