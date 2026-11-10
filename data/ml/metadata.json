@@ -1,6 +1,6 @@
 {
   "model_version": 1,
-  "trained_at": "2026-11-09T21:08:05.611433",
+  "trained_at": "2026-11-10T18:19:11.943123",
   "symbols": [
     "RELIANCE",
     "TCS",
@@ -18,14 +18,14 @@
   "positive_rate": 0.5714,
   "cv_accuracy_mean": 0.6182,
   "cv_accuracy_std": 0.1336,
-  "cv_auc_mean": 0.5476,
+  "cv_auc_mean": 0.5671,
   "cv_precision": 0.5899,
   "cv_recall": 1.0,
   "feature_importances": {},
   "backtest_summaries": [
     {
       "symbol": "RELIANCE",
-      "candles": 9032,
+      "candles": 8957,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.75,
@@ -47,7 +47,7 @@
     },
     {
       "symbol": "TCS",
-      "candles": 9032,
+      "candles": 8957,
       "best_params": {
         "buy_threshold": 0.25,
         "sell_threshold": 0.8,
@@ -61,15 +61,15 @@
         "max_position_pct": 0.15,
         "capital": 10000.0
       },
-      "oos_net_pnl": 246.51,
+      "oos_net_pnl": 299.06,
       "oos_win_rate": 0.5454545454545454,
       "oos_trades": 22,
-      "oos_sharpe": 40.986,
-      "oos_expectancy": 11.205
+      "oos_sharpe": 53.352,
+      "oos_expectancy": 13.5936
     },
     {
       "symbol": "INFY",
-      "candles": 9032,
+      "candles": 8957,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.75,
@@ -91,7 +91,7 @@
     },
     {
       "symbol": "HDFCBANK",
-      "candles": 9032,
+      "candles": 8957,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.85,
@@ -113,7 +113,7 @@
     },
     {
       "symbol": "ICICIBANK",
-      "candles": 9032,
+      "candles": 8957,
       "best_params": {
         "buy_threshold": 0.25,
         "sell_threshold": 0.75,
@@ -135,7 +135,7 @@
     },
     {
       "symbol": "SBIN",
-      "candles": 9032,
+      "candles": 8957,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.8,
@@ -157,7 +157,7 @@
     },
     {
       "symbol": "AXISBANK",
-      "candles": 9032,
+      "candles": 8957,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.75,
@@ -179,7 +179,7 @@
     },
     {
       "symbol": "WIPRO",
-      "candles": 9032,
+      "candles": 8957,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.85,
@@ -201,7 +201,7 @@
     },
     {
       "symbol": "LT",
-      "candles": 9032,
+      "candles": 8957,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.85,
@@ -223,7 +223,7 @@
     },
     {
       "symbol": "BAJFINANCE",
-      "candles": 9032,
+      "candles": 8957,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.75,
@@ -244,6 +244,6 @@
       "oos_expectancy": -4.2645
     }
   ],
-  "training_seconds": 52.5,
+  "training_seconds": 48.4,
   "model_path": "data/ml/model.joblib"
 }
