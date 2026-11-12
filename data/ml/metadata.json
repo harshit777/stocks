@@ -1,6 +1,6 @@
 {
   "model_version": 1,
-  "trained_at": "2026-11-11T18:07:00.370411",
+  "trained_at": "2026-11-12T18:37:59.445640",
   "symbols": [
     "RELIANCE",
     "TCS",
@@ -244,6 +244,6 @@
       "oos_expectancy": -3.7733
     }
   ],
-  "training_seconds": 53.1,
+  "training_seconds": 43.9,
   "model_path": "data/ml/model.joblib"
 }
