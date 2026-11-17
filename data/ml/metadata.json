@@ -1,6 +1,6 @@
 {
   "model_version": 1,
-  "trained_at": "2026-11-16T20:42:51.628725",
+  "trained_at": "2026-11-17T19:27:19.699031",
   "symbols": [
     "RELIANCE",
     "TCS",
@@ -14,18 +14,18 @@
     "BAJFINANCE"
   ],
   "lookback_days": 180,
-  "n_samples": 97,
-  "positive_rate": 0.5876,
-  "cv_accuracy_mean": 0.5625,
-  "cv_accuracy_std": 0.1118,
-  "cv_auc_mean": 0.5019,
-  "cv_precision": 0.5619,
-  "cv_recall": 0.9,
+  "n_samples": 95,
+  "positive_rate": 0.5789,
+  "cv_accuracy_mean": 0.5333,
+  "cv_accuracy_std": 0.2191,
+  "cv_auc_mean": 0.5138,
+  "cv_precision": 0.5333,
+  "cv_recall": 0.8667,
   "feature_importances": {},
   "backtest_summaries": [
     {
       "symbol": "RELIANCE",
-      "candles": 8945,
+      "candles": 8942,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.75,
@@ -47,7 +47,7 @@
     },
     {
       "symbol": "TCS",
-      "candles": 8945,
+      "candles": 8942,
       "best_params": {
         "buy_threshold": 0.25,
         "sell_threshold": 0.8,
@@ -61,15 +61,15 @@
         "max_position_pct": 0.15,
         "capital": 10000.0
       },
-      "oos_net_pnl": 386.0,
-      "oos_win_rate": 0.6190476190476191,
+      "oos_net_pnl": 396.99,
+      "oos_win_rate": 0.6666666666666666,
       "oos_trades": 21,
-      "oos_sharpe": 73.608,
-      "oos_expectancy": 18.381
+      "oos_sharpe": 76.185,
+      "oos_expectancy": 18.9043
     },
     {
       "symbol": "INFY",
-      "candles": 8945,
+      "candles": 8942,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.75,
@@ -91,7 +91,7 @@
     },
     {
       "symbol": "HDFCBANK",
-      "candles": 8945,
+      "candles": 8942,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.85,
@@ -113,7 +113,7 @@
     },
     {
       "symbol": "ICICIBANK",
-      "candles": 8945,
+      "candles": 8942,
       "best_params": {
         "buy_threshold": 0.25,
         "sell_threshold": 0.75,
@@ -135,7 +135,7 @@
     },
     {
       "symbol": "SBIN",
-      "candles": 8945,
+      "candles": 8942,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.8,
@@ -149,15 +149,15 @@
         "max_position_pct": 0.15,
         "capital": 10000.0
       },
-      "oos_net_pnl": 2.81,
-      "oos_win_rate": 0.38461538461538464,
-      "oos_trades": 13,
-      "oos_sharpe": 4.725,
-      "oos_expectancy": 0.2162
+      "oos_net_pnl": -2.11,
+      "oos_win_rate": 0.3333333333333333,
+      "oos_trades": 12,
+      "oos_sharpe": -3.782,
+      "oos_expectancy": -0.1758
     },
     {
       "symbol": "AXISBANK",
-      "candles": 8945,
+      "candles": 8942,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.75,
@@ -179,7 +179,7 @@
     },
     {
       "symbol": "WIPRO",
-      "candles": 8945,
+      "candles": 8942,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.85,
@@ -193,15 +193,15 @@
         "max_position_pct": 0.15,
         "capital": 10000.0
       },
-      "oos_net_pnl": 137.04,
-      "oos_win_rate": 0.5882352941176471,
+      "oos_net_pnl": 131.31,
+      "oos_win_rate": 0.5294117647058824,
       "oos_trades": 17,
-      "oos_sharpe": 54.248,
-      "oos_expectancy": 8.0612
+      "oos_sharpe": 51.54,
+      "oos_expectancy": 7.7241
     },
     {
       "symbol": "LT",
-      "candles": 8945,
+      "candles": 8942,
       "best_params": {
         "buy_threshold": 0.15,
         "sell_threshold": 0.85,
@@ -223,7 +223,7 @@
     },
     {
       "symbol": "BAJFINANCE",
-      "candles": 8945,
+      "candles": 8942,
       "best_params": {
         "buy_threshold": 0.25,
         "sell_threshold": 0.75,
@@ -237,13 +237,13 @@
         "max_position_pct": 0.15,
         "capital": 10000.0
       },
-      "oos_net_pnl": 55.18,
-      "oos_win_rate": 0.5185185185185185,
-      "oos_trades": 27,
-      "oos_sharpe": 18.939,
-      "oos_expectancy": 2.0437
+      "oos_net_pnl": 47.93,
+      "oos_win_rate": 0.5,
+      "oos_trades": 26,
+      "oos_sharpe": 16.951,
+      "oos_expectancy": 1.8435
     }
   ],
-  "training_seconds": 41.6,
+  "training_seconds": 49.6,
   "model_path": "data/ml/model.joblib"
 }
